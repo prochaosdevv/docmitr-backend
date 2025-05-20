@@ -35,19 +35,19 @@ app.use(express.json());
 app.use(morgan("dev"));
 
 // Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/patients", authenticateToken, patientRoutes);
-app.use("/api/doctors", authenticateToken, doctorRoutes);
-app.use("/api/appointments", authenticateToken, appointmentRoutes);
-app.use("/api/staffs", staffRoutes);
-app.use("/api/medical-records", authenticateToken, medicalRecordRoutes);
-app.use("/api/dashboard", authenticateToken, dashboardRoutes);
-app.use("/api/slots", slotsRoutes);
-app.use("/api/clinics", clinicRoutes);
-app.use("/api/templates", templateRoutes);
-app.use("/api/drugs", drugsRouter);
-app.use("/api/headouts", headoutRouter);
-app.use("/api/sms", smsRouter);
+app.use("/docmitr/api/auth", authRoutes);
+app.use("/docmitr/api/patients", authenticateToken, patientRoutes);
+app.use("/docmitr/api/doctors", authenticateToken, doctorRoutes);
+app.use("/docmitr/api/appointments", authenticateToken, appointmentRoutes);
+app.use("/docmitr/api/staffs", staffRoutes);
+app.use("/docmitr/api/medical-records", authenticateToken, medicalRecordRoutes);
+app.use("/docmitr/api/dashboard", authenticateToken, dashboardRoutes);
+app.use("/docmitr/api/slots", slotsRoutes);
+app.use("/docmitr/api/clinics", clinicRoutes);
+app.use("/docmitr/api/templates", templateRoutes);
+app.use("/docmitr/api/drugs", drugsRouter);
+app.use("/docmitr/api/headouts", headoutRouter);
+app.use("/docmitr/api/sms", smsRouter);
 
 // Root route
 app.get("/docmitr", (req, res) => {
