@@ -50,7 +50,7 @@ app.use("/api/headouts", headoutRouter);
 app.use("/api/sms", smsRouter);
 
 // Root route
-app.get("/", (req, res) => {
+app.get("/docmitr", (req, res) => {
   res.send("Clinic Management API is running");
 });
 
