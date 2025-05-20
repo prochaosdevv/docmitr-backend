@@ -4,7 +4,7 @@ import {
   createClinic,
   deleteClinic,
   getClinic,
-  getClinicsByDoctorId,
+  getClinicsByDoctorOrStaffId,
   getTotalClinics,
   updateClinic,
 } from "../controllers/clinic.js";
@@ -16,6 +16,6 @@ router.get("/", getClinic);
 router.put("/:id", updateClinic);
 router.delete("/:id", deleteClinic);
 router.get("/count", getTotalClinics);
-router.get("/doctor/:doctorId", authenticateToken, getClinicsByDoctorId);
+router.get("/doctor/:userId", authenticateToken, getClinicsByDoctorOrStaffId);
 
 export const clinicRoutes = router;

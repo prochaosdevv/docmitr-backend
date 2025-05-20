@@ -1,12 +1,14 @@
 import { db, findById, findAll, create, update, remove } from "../db/index.js";
+import Appoinment from "../models/Appoinment.js";
 import Patient from "../models/Patient.js";
+import PatientAddressHistory from "../models/PatientAddressHistory.js";
 
 export const getPatientsByQuery = async (req, res) => {
   try {
     const { search } = req.query;
 
     if (!search) {
-      return res.status(400).json({ message: "Search query is required" });
+      return await getPatients(req, res);
     }
 
     // Create a case-insensitive partial match regex
@@ -20,7 +22,9 @@ export const getPatientsByQuery = async (req, res) => {
         { phone: { $regex: regex } },
       ],
     })
-      .select("name email phone patientId")
+      .select(
+        "name email phone patientId patientUID caretakerName thirdPartyUID ageMonths ageYears gender patientClinicId bloodGroup dobYear dobMonth dobDate address1 address2 area pincode city district state country _id"
+      )
       .limit(10);
 
     return res.status(200).json({
@@ -98,11 +102,18 @@ export const createPatient = async (req, res) => {
       state: req.body.address?.state || "",
       district: req.body.address?.district || "",
       bloodGroup: req.body.bloodGroup || "",
-      age: `${req.body.ageYears + req.body.ageMonths}`,
+      ageYears: req.body.ageYears,
+      ageMonths: req.body.ageMonths,
       caretakerName: req.body.caretakerName || null,
-      domDate: req.body.dateOfMarriage.split("/")[0],
-      domMonth: req.body.dateOfMarriage.split("/")[1],
-      domYear: req.body.dateOfMarriage.split("/")[2],
+      domDate: req.body?.dateOfMarriage
+        ? req.body.dateOfMarriage.split("/")[0]
+        : null,
+      domMonth: req.body?.dateOfMarriage
+        ? req.body.dateOfMarriage.split("/")[1]
+        : null,
+      domYear: req.body?.dateOfMarriage
+        ? req.body.dateOfMarriage.split("/")[2]
+        : null,
       gender: req.body.gender,
       patientClinicId: req.body.patientClinicId || 1550,
       purposeOfVisit: req.body.purposeOfVisit || null,
@@ -315,7 +326,7 @@ export const getPatients = async (req, res) => {
   try {
     const patients = await Patient.find()
       .select(
-        "name email phone patientId patientUID caretakerName thirdPartyUID age gender patientClinicId bloodGroup dobYear dobMonth dobDate age"
+        "name email phone patientId patientUID caretakerName thirdPartyUID ageMonths ageYears gender patientClinicId bloodGroup dobYear dobMonth dobDate address1 address2 area pincode city district state country _id"
       )
       .sort({ createdAt: -1 })
       .limit(10);
@@ -328,5 +339,86 @@ export const getPatients = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const updatePatientAddressAndCreateHistory = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const {
+      addressLine1,
+      addressLine2,
+      area,
+      pincode,
+      city,
+      district,
+      state,
+      country,
+    } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ message: "Patient ID is required" });
+    }
+
+    const patient = await Patient.findOne({ _id: id.toString() });
+    if (!patient) {
+      return res.status(404).json({ message: "Patient not found" });
+    }
+
+    await PatientAddressHistory.create({
+      patientId: id,
+      address1: patient.address1,
+      address2: patient.address2 || "",
+      area: patient.area || "",
+      pincode: patient.pincode || "",
+      city: patient.city || "",
+      district: patient.district || "",
+      state: patient.state || "",
+      country: patient.country || "India",
+    });
+
+    await Patient.findOneAndUpdate(
+      { _id: id },
+      {
+        $set: {
+          address1: addressLine1 || "",
+          address2: addressLine2 || "",
+          area: area || "",
+          pincode: pincode || "",
+          city: city || "",
+          district: district || "",
+          state: state || "",
+          country: country || "India",
+        },
+      },
+      { new: true, runValidators: true }
+    );
+
+    await Appoinment.findOneAndUpdate(
+      { patientId: id },
+      {
+        $set: {
+          address: {
+            addressLine1,
+            addressLine2,
+            city,
+            state,
+            district,
+            country,
+            pincode,
+            area,
+          },
+        },
+      },
+      { new: true, runValidators: true }
+    );
+
+    return res.status(200).json({
+      message: "Patient updated successfully",
+    });
+  } catch (error) {
+    console.error("Update patient error:", error);
+    return res.status(500).json({ message: "Server error" });
   }
 };

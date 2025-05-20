@@ -7,6 +7,7 @@ import {
   extractClinicTimings,
 } from "../utils/helper-functions.js";
 import Doctor from "../models/Doctor.js";
+import Staff from "../models/Staff.js";
 
 export const createClinic = async (req, res) => {
   try {
@@ -89,29 +90,53 @@ export const createClinic = async (req, res) => {
   }
 };
 
-export const getClinicsByDoctorId = async (req, res) => {
-  const { doctorId } = req.params;
+export const getClinicsByDoctorOrStaffId = async (req, res) => {
+  const userId = req.params.userId; // doctor or staff ID
+  const userRole = req.user.role; // user role from JWT
 
   try {
-    const clinics = await Clinic.find({ doctorId }).populate("doctorId", [
-      "firstName",
-      "lastName",
-      "specialization",
-      "email",
-      "phone",
-    ]);
+    let clinics;
 
-    if (!clinics || clinics.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No clinics found for this doctor",
-      });
+    if (userRole === "doctor") {
+      // Find clinics where doctorId matches
+      clinics = await Clinic.find({ doctorId: userId }).populate("doctorId", [
+        "firstName",
+        "lastName",
+        "specialization",
+        "email",
+        "phone",
+      ]);
+    } else if (userRole === "staff") {
+      const staff = await Staff.findById(userId);
+      if (!staff) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Staff not found" });
+      }
+
+      // Fetch the single clinic by the staff's clinic field
+      const clinic = await Clinic.findById(staff.clinic).populate("doctorId", [
+        "firstName",
+        "lastName",
+        "specialization",
+        "email",
+        "phone",
+      ]);
+
+      clinics = clinic ? [clinic] : [];
+    } else {
+      return res
+        .status(403)
+        .json({ success: false, message: "Unauthorized role" });
     }
 
-    res.status(200).json({
-      success: true,
-      clinics,
-    });
+    if (!clinics || clinics.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No clinics found" });
+    }
+
+    res.status(200).json({ success: true, clinics });
   } catch (error) {
     console.error("Error fetching clinics:", error);
     res.status(500).json({

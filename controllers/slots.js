@@ -3,6 +3,8 @@ import Doctor from "../models/Doctor.js";
 import SingleSlot from "../models/SingleSlot.js";
 import SlotsAvailability from "../models/SlotsAvailability.js";
 import mongoose from "mongoose";
+import Clinic from "../models/Clinic.js";
+import { generateSlotsForDay } from "../utils/helper-functions.js";
 
 export const getSlotTimes = async (req, res) => {
   try {
@@ -161,6 +163,68 @@ export const createSlotAvailability = async (req, res) => {
       .json({ message: "Slot created successfully", slot: newSlot });
   } catch (error) {
     console.error("Error creating slot:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getSlotsByDay = async (req, res) => {
+  try {
+    const { clinicId } = req.params;
+    const { date, timeEnv = "morning" } = req.query;
+
+    const pageLimit = 15;
+    const page = parseInt(req.query.page) || 1;
+    const skip = (page - 1) * pageLimit;
+
+    const doctorId = req.user.id;
+    const userRole = req.user.role;
+
+    let clinic = null;
+
+    if (userRole === "doctor") {
+      clinic = await Clinic.findOne({ _id: clinicId, doctorId });
+    } else if (userRole === "staff") {
+      clinic = await Clinic.findById(clinicId);
+    }
+    if (!clinic) {
+      return res.status(404).json({ message: "Clinic not found" });
+    }
+
+    if (!date) {
+      return res
+        .status(400)
+        .json({ message: "Date query parameter is required" });
+    }
+
+    const isoDate = new Date(date).toISOString(); // Ensures RFC-compliant input
+    const dayOfWeek = moment(isoDate).format("dddd").toLowerCase(); // e.g., "monday"
+    const scheduleForDay = clinic.clinicTimings.weeklySchedule[dayOfWeek];
+
+    if (!scheduleForDay) {
+      return res.status(200).json({ clinicId, slots: [] });
+    }
+
+    const slotDuration = parseInt(
+      clinic.clinicTimings.appointmentTimeSlot || "30"
+    );
+
+    const allSlots = generateSlotsForDay(scheduleForDay, timeEnv, slotDuration);
+    const totalSlots = allSlots.length;
+
+    const paginatedSlots = allSlots.slice(skip, skip + pageLimit);
+
+    return res.status(200).json({
+      clinicId,
+      date,
+      day: dayOfWeek,
+      slots: paginatedSlots,
+      totalSlots,
+      totalPages: Math.ceil(totalSlots / pageLimit),
+      currentPage: page,
+      pageLimit,
+    });
+  } catch (error) {
+    console.log("Error in getSlotsByDay:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

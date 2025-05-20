@@ -4,6 +4,7 @@ import { db } from "../db/index.js";
 import User from "../models/User.js";
 import Doctor from "../models/Doctor.js";
 import Admin from "../models/Admin.js";
+import Staff from "../models/Staff.js";
 
 export const login = async (req, res) => {
   try {
@@ -168,6 +169,47 @@ export const loginDoctor = async (req, res) => {
           phone: doctor.phone,
           profileCompleted: doctor.profileCompleted,
           role: "doctor",
+        },
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const loginStaff = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const staff = await Staff.findOne({ email });
+
+    if (!staff) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const isMatch = await bcrypt.compare(password, staff.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const token = jwt.sign(
+      { id: staff._id, email: staff.email, role: "staff" },
+      process.env.JWT_SECRET || "your-secret-key",
+      { expiresIn: "1d" }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      data: {
+        token,
+        staff: {
+          id: staff._id, // ✅ Corrected
+          name: staff.name,
+          email: staff.email,
+          role: staff.role,
         },
       },
     });

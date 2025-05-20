@@ -39,7 +39,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/patients", authenticateToken, patientRoutes);
 app.use("/api/doctors", authenticateToken, doctorRoutes);
 app.use("/api/appointments", authenticateToken, appointmentRoutes);
-app.use("/api/staff", authenticateToken, staffRoutes);
+app.use("/api/staffs", staffRoutes);
 app.use("/api/medical-records", authenticateToken, medicalRecordRoutes);
 app.use("/api/dashboard", authenticateToken, dashboardRoutes);
 app.use("/api/slots", slotsRoutes);

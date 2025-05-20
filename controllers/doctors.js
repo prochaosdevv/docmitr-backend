@@ -85,6 +85,8 @@ export const createDoctor = async (req, res) => {
     const randomNum = Math.floor(Math.random() * 1000); // up to 999
     const plainPassword = `docmitra${firstName}${randomNum}`;
 
+    console.log("Generated password:", plainPassword);
+
     // Hash the generated password
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
@@ -108,14 +110,16 @@ export const createDoctor = async (req, res) => {
     // send welcome email with the generated password and email
     const html = welcomeEmail(firstName + " " + lastName, email, plainPassword);
 
-    const res1 = await sendEmail(
-      email,
-      "Welcome to Docmitr",
-      `Hello ${firstName}, welcome to Docmitr!`,
-      html
-    );
+    if (process.env.SEND_EMAIL == "true") {
+      const res1 = await sendEmail(
+        email,
+        "Welcome to Docmitr",
+        `Hello ${firstName}, welcome to Docmitr!`,
+        html
+      );
 
-    console.log("Email sent successfully:", res1);
+      console.log("Email sent successfully:", res1);
+    }
 
     // Optionally return the plain password (e.g. to send in email)
     res.status(201).json({

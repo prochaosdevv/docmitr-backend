@@ -9,6 +9,7 @@ import {
   loginAdmin,
   getAdmin,
   logoutAdmin,
+  loginStaff,
 } from "../controllers/auth.js";
 import { authenticateToken } from "../middleware/auth.js";
 
@@ -19,6 +20,7 @@ router.post("/register", register);
 router.get("/me", authenticateToken, getCurrentUser);
 router.post("/logout", authenticateToken, logout);
 router.post("/doctor/login", loginDoctor);
+router.post("/staff/login", loginStaff);
 router.post("/admin/register", registerAdmin);
 router.post("/admin/login", loginAdmin);
 router.get("/admin/get-me", authenticateToken, getAdmin);

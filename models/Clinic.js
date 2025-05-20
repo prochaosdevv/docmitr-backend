@@ -13,6 +13,16 @@ const WeeklySlotSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const ClinicAppointmentSummarySchema = new mongoose.Schema(
+  {
+    appointmentId: { type: mongoose.Schema.Types.ObjectId, ref: "Appointment" },
+    patientName: { type: String },
+    email: { type: String },
+    mobileNumber: { type: String },
+  },
+  { _id: false }
+);
+
 const DayScheduleSchema = new mongoose.Schema(
   {
     morning: { type: WeeklySlotSchema, default: () => ({}) },
@@ -150,6 +160,8 @@ const clinicSchema = new mongoose.Schema(
     contact: { type: ContactSchema, default: () => ({}) },
 
     clinicTimings: { type: ClinicTimingsSchema, default: () => ({}) },
+
+    // appointments: { type: [ClinicAppointmentSummarySchema], default: [] },
 
     clinicStatus: {
       type: String,

@@ -18,7 +18,6 @@ const patientSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      match: /^\S+@\S+\.\S+$/,
     },
 
     caretakerName: {
@@ -38,22 +37,15 @@ const patientSchema = new mongoose.Schema(
       required: true,
     },
 
-    age: {
+    ageMonths: {
       type: String,
       required: true,
     },
 
-    // height: {
-    //   type: String,
-    //   required: true,
-    //   match: /^\d*$/,
-    // },
-
-    // weight: {
-    //   type: String,
-    //   required: true,
-    //   match: /^\d*$/,
-    // },
+    ageYears: {
+      type: String,
+      required: true,
+    },
 
     dobYear: {
       type: String,
