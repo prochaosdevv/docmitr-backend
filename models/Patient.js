@@ -4,7 +4,7 @@ const patientSchema = new mongoose.Schema(
   {
     patientUID: { type: String, default: null },
     thirdPartyUID: { type: String, default: null },
-    patientClinicId: { type: Number, unique: true, default: null },
+    clinicSpecificId: { type: Number, unique: true, default: null },
 
     patientId: { type: String, unique: true },
 
@@ -49,28 +49,17 @@ const patientSchema = new mongoose.Schema(
 
     dobYear: {
       type: String,
-      required: true,
-      match: /^\d*$/,
+      default: null,
     },
 
     dobMonth: {
       type: String,
-      required: true,
-      match: /^\d*$/,
-      validate: {
-        validator: (val) => Number(val) >= 0 && Number(val) < 12,
-        message: "Month must be between 0-11",
-      },
+      default: null,
     },
 
     dobDate: {
       type: String,
-      required: true,
-      match: /^\d*$/,
-      validate: {
-        validator: (val) => Number(val) > 0 && Number(val) <= 31,
-        message: "Date must be between 1-31",
-      },
+      default: null,
     },
 
     // -------------

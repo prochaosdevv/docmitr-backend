@@ -43,7 +43,7 @@ const appointmentSchema = new mongoose.Schema(
     appointmentId: { type: String, required: true },
     mobileNumber: { type: String, required: true },
     email: { type: String, required: true },
-    patientClinicId: { type: Number, required: true },
+    clinicSpecificId: { type: Number, unique: true, default: null },
     patientUid: { type: String },
     patientName: { type: String, required: true },
     dateOfBirth: { type: String },

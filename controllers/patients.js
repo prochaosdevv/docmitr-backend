@@ -23,7 +23,7 @@ export const getPatientsByQuery = async (req, res) => {
       ],
     })
       .select(
-        "name email phone patientId patientUID caretakerName thirdPartyUID ageMonths ageYears gender patientClinicId bloodGroup dobYear dobMonth dobDate address1 address2 area pincode city district state country _id"
+        "name email phone patientId patientUID caretakerName thirdPartyUID ageMonths ageYears gender clinicSpecificId bloodGroup dobYear dobMonth dobDate address1 address2 area pincode city district state country _id"
       )
       .limit(10);
 
@@ -83,16 +83,16 @@ export const createPatient = async (req, res) => {
         .json({ message: "Duplicate patient detected. Try again." });
     }
 
-    console.log("Creating patient with ID:", req.body.dateOfMarriage);
-
     const newPatient = new Patient({
       patientId: nextPatientId,
+      clinicSpecificId: req.body.clinicSpecificId || null,
+      language: req.body.language || null,
       name: req.body.name,
       email: req.body.email,
       phone: req.body.phone,
-      dobYear: req.body.dateOfBirth.split("/")[2],
-      dobMonth: req.body.dateOfBirth.split("/")[1],
-      dobDate: req.body.dateOfBirth.split("/")[0],
+      dobYear: req.body.dateOfBirth.split("/")[2] || null,
+      dobMonth: req.body.dateOfBirth.split("/")[1] || null,
+      dobDate: req.body.dateOfBirth.split("/")[0] || null,
       address1: req.body.address?.addressLine1 || "",
       address2: req.body.address?.addressLine2 || "",
       area: req.body.address?.area || "",
@@ -326,7 +326,7 @@ export const getPatients = async (req, res) => {
   try {
     const patients = await Patient.find()
       .select(
-        "name email phone patientId patientUID caretakerName thirdPartyUID ageMonths ageYears gender patientClinicId bloodGroup dobYear dobMonth dobDate address1 address2 area pincode city district state country _id"
+        "name email phone patientId patientUID caretakerName thirdPartyUID ageMonths ageYears gender clinicSpecificId bloodGroup dobYear dobMonth dobDate address1 address2 area pincode city district state country _id"
       )
       .sort({ createdAt: -1 })
       .limit(10);

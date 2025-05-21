@@ -1,6 +1,8 @@
 import Staff from "../models/Staff.js";
 import Clinic from "../models/Clinic.js";
 import bcrypt from "bcryptjs";
+import { welcomeEmailStaff } from "../emails.js";
+import { sendEmail } from "../utils/send-mail.js";
 
 // Create staff
 export const createStaff = async (req, res) => {
@@ -46,6 +48,19 @@ export const createStaff = async (req, res) => {
       status: status || "active",
       doctorId,
     });
+
+    const html = welcomeEmailStaff(name, email, plainPassword);
+
+    if (process.env.SEND_EMAIL == "true") {
+      const res1 = await sendEmail(
+        email,
+        "Welcome to Docmitr",
+        `Hello ${name}, welcome to Docmitr!`,
+        html
+      );
+
+      console.log("Email sent successfully:", res1);
+    }
 
     res.status(201).json({
       success: true,
