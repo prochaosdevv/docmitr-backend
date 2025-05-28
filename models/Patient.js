@@ -16,8 +16,7 @@ const patientSchema = new mongoose.Schema(
 
     email: {
       type: String,
-      required: true,
-      unique: true,
+      default: "",
     },
 
     caretakerName: {
@@ -87,7 +86,7 @@ const patientSchema = new mongoose.Schema(
       default: null,
     },
 
-    bloodGroup: { type: String },
+    bloodGroup: { type: String, default: null },
 
     adhar: {
       type: String,

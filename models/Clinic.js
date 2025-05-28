@@ -122,7 +122,7 @@ const OfflineAppointmentPaymentSchema = new mongoose.Schema(
 const clinicSchema = new mongoose.Schema(
   {
     doctorId: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
-    name: { type: String, default: null },
+    name: { type: String, default: null, required: true },
     contactNo1: { type: String, default: null },
     contactNo2: { type: String, default: null },
     email: { type: String, default: null },

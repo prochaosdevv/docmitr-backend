@@ -68,6 +68,7 @@ export const createDoctor = async (req, res) => {
       phone,
       bio,
       consultationFee,
+      regNo,
       subscriptionType,
       address,
       city,
@@ -103,6 +104,7 @@ export const createDoctor = async (req, res) => {
       phone: `+91 ${phone}`,
       bio,
       consultationFee,
+      regNo,
       subscriptionType,
       address,
       city,
@@ -144,6 +146,7 @@ export const updateDoctor = async (req, res) => {
       phone,
       bio,
       consultationFee,
+      regNo,
       subscriptionType,
       address,
       city,
@@ -167,6 +170,7 @@ export const updateDoctor = async (req, res) => {
     doctor.phone = phone ? `+91 ${phone}` : doctor.phone;
     doctor.bio = bio || doctor.bio;
     doctor.consultationFee = consultationFee || doctor.consultationFee;
+    doctor.regNo = regNo || doctor.regNo;
     doctor.subscriptionType = subscriptionType || doctor.subscriptionType;
     doctor.address = address || doctor.address;
     doctor.city = city || doctor.city;

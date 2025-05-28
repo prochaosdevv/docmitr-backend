@@ -39,6 +39,11 @@ const doctorSchema = new mongoose.Schema({
   },
   consultationFee: {
     type: Number,
+    default: null,
+  },
+  regNo: {
+    type: String,
+    default: null,
   },
   subscriptionType: {
     type: String,

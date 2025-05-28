@@ -91,7 +91,7 @@ const appointmentSchema = new mongoose.Schema(
     },
     appointmentId: { type: String, required: true },
     mobileNumber: { type: String, required: true },
-    email: { type: String, required: true },
+    email: { type: String, default: "" },
     clinicSpecificId: { type: Number, default: "" },
     patientUid: { type: String },
     patientName: { type: String, required: true },
