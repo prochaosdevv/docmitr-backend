@@ -1,5 +1,52 @@
 import mongoose from "mongoose";
 
+// Sub-schema for defined options
+const DefinedOptionSchema = new mongoose.Schema(
+  {
+    optionTitle: { type: String, required: true },
+    values: [{ type: String, required: true }],
+  },
+  { _id: false }
+);
+
+// Sub-schema for mainTitle inside selectedValueAndOptions
+const MainTitleSchema = new mongoose.Schema(
+  {
+    _id: { type: String, required: true },
+    name: { type: String, required: true },
+    isSelected: { type: Boolean, required: true },
+  },
+  { _id: false }
+);
+
+// Sub-schema for selectedValueAndOptions array
+const SelectedValueAndOptionSchema = new mongoose.Schema(
+  {
+    mainTitle: { type: MainTitleSchema, required: true },
+    definedOptions: [DefinedOptionSchema],
+  },
+  { _id: false }
+);
+
+// Sub-schema for each section
+const FollowUpSectionSchema = new mongoose.Schema(
+  {
+    sectionTitle: { type: String, required: true },
+    selectedValueAndOptions: [SelectedValueAndOptionSchema],
+  },
+  { _id: false }
+);
+
+// Root-level follow-up entry with date and sections
+const ConsultationFollowUpEntrySchema = new mongoose.Schema(
+  {
+    date: { type: Date, default: Date.now },
+    sections: [FollowUpSectionSchema],
+  },
+  { _id: false }
+);
+
+// Address schema
 const AddressSchema = new mongoose.Schema(
   {
     addressLine1: { type: String, required: true },
@@ -14,6 +61,7 @@ const AddressSchema = new mongoose.Schema(
   { _id: false }
 );
 
+// TimeSlot schema
 const TimeSlotSchema = new mongoose.Schema(
   {
     timeRange: { type: String, required: true },
@@ -23,6 +71,7 @@ const TimeSlotSchema = new mongoose.Schema(
   { _id: false }
 );
 
+// Main Appointment Schema
 const appointmentSchema = new mongoose.Schema(
   {
     doctorId: {
@@ -62,10 +111,10 @@ const appointmentSchema = new mongoose.Schema(
     timeSlot: { type: TimeSlotSchema, required: true },
     roomNo: { type: String },
     address: { type: AddressSchema, required: true },
+
+    consultationFollowUpOption: [ConsultationFollowUpEntrySchema],
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 export default mongoose.model("Appointment", appointmentSchema);

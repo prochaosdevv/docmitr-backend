@@ -20,6 +20,8 @@ import { templateRoutes } from "./routes/prescriptions.js";
 import { drugsRouter } from "./routes/drug.js";
 import { headoutRouter } from "./routes/headouts.js";
 import { smsRouter } from "./routes/sms.js";
+import { vitalsRouter } from "./routes/vitals.js";
+import { consultantFollowups } from "./routes/consultantFollowups.js";
 
 // Load environment variables
 dotenv.config();
@@ -43,7 +45,13 @@ app.use("/docmitr/api/staffs", staffRoutes);
 app.use("/docmitr/api/medical-records", authenticateToken, medicalRecordRoutes);
 app.use("/docmitr/api/dashboard", authenticateToken, dashboardRoutes);
 app.use("/docmitr/api/slots", slotsRoutes);
-app.use("/docmitr/api/clinics", clinicRoutes);
+app.use("/docmitr/api/clinics", authenticateToken, clinicRoutes);
+app.use("/docmitr/api/vitals", authenticateToken, vitalsRouter);
+app.use(
+  "/docmitr/api/cosultant-followup",
+  authenticateToken,
+  consultantFollowups
+);
 app.use("/docmitr/api/templates", templateRoutes);
 app.use("/docmitr/api/drugs", drugsRouter);
 app.use("/docmitr/api/headouts", headoutRouter);

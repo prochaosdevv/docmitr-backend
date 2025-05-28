@@ -1,33 +1,51 @@
 import mongoose from "mongoose";
 
-const vitalSchema = new mongoose.Schema(
-  {
-    vitalName: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      enum: [
-        "Heart Rate",
-        "Blood Pressure",
-        "Respiratory Rate",
-        "Temperature",
-        "Oxygen Saturation",
-        "Height",
-        "Weight",
-        "BMI",
-        "Head Circumference",
-        "Waist Circumference",
-      ],
-    },
-    unit: {
-      type: String,
-      required: true,
-      trim: true,
-      enum: ["bpm", "mmHg", "breaths/min", "°C", "%", "cm", "kg", "kg/m²"],
-    },
+const vitalsSchema = new mongoose.Schema({
+  date: {
+    type: String,
+    required: true,
   },
-  { timestamps: true }
-);
+  doctorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Doctor",
+    required: true,
+  },
+  appointmentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Appointment",
+    required: true,
+  },
+  patientId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Patient",
+    required: true,
+  },
+  pulse: Number,
+  systolic: Number,
+  diastolic: Number,
+  spo2: Number,
+  temperature: Number,
+  weight: Number,
+  height: Number,
+  bmi: Number,
+  respiratoryRate: Number,
+  bloodGlucose: Number,
+  heartRate: Number,
+  map: Number,
+  rRate: Number,
+  bodyFat: Number,
+  upperSegment: Number,
+  lowerSegment: Number,
+  armSpan: Number,
+  sittingHeight: Number,
+  heightAge: Number,
+  egfr: Number,
+  fundalHeight: Number,
+  diastolicRight: Number,
+  diastolicLeft: Number,
+  systolicRight: Number,
+  systolicLeft: Number,
+  muac: Number,
+});
 
-export default mongoose.model("Vital", vitalSchema);
+export default mongoose.model("Vital", vitalsSchema);

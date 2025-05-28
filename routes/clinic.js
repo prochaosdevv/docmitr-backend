@@ -4,6 +4,7 @@ import {
   createClinic,
   deleteClinic,
   getClinic,
+  getClinicById,
   getClinicsByDoctorOrStaffId,
   getTotalClinics,
   updateClinic,
@@ -13,6 +14,7 @@ const router = express.Router();
 
 router.post("/", authenticateToken, createClinic);
 router.get("/", getClinic);
+router.get("/:clinicId", getClinicById);
 router.put("/:id", updateClinic);
 router.delete("/:id", deleteClinic);
 router.get("/count", getTotalClinics);

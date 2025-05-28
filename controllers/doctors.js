@@ -83,7 +83,10 @@ export const createDoctor = async (req, res) => {
 
     // Generate a random number up to 3 digits (0–999)
     const randomNum = Math.floor(Math.random() * 1000); // up to 999
-    const plainPassword = `docmitra${firstName}${randomNum}`;
+    const plainPassword = `docmitra${firstName}${randomNum}`.replace(
+      /\s+/g,
+      ""
+    );
 
     console.log("Generated password:", plainPassword);
 

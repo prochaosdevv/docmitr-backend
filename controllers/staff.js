@@ -29,7 +29,10 @@ export const createStaff = async (req, res) => {
     }
 
     const randomNum = Math.floor(Math.random() * 1000); // up to 999
-    const plainPassword = `docmitraStaff${name}${randomNum}`;
+    const plainPassword = `docmitraStaff${name}${randomNum}`.replace(
+      /\s+/g,
+      ""
+    );
 
     console.log("Generated password:", plainPassword);
 

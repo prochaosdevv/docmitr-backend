@@ -132,8 +132,8 @@ export const getClinicsByDoctorOrStaffId = async (req, res) => {
 
     if (!clinics || clinics.length === 0) {
       return res
-        .status(404)
-        .json({ success: false, message: "No clinics found" });
+        .status(200)
+        .json({ success: false, message: "No clinics found", clinics: [] });
     }
 
     res.status(200).json({ success: true, clinics });
@@ -191,6 +191,24 @@ export const getClinic = async (req, res) => {
       message: "Internal server error",
       error: error.message,
     });
+  }
+};
+
+export const getClinicById = async (req, res) => {
+  const { clinicId } = req.params;
+
+  try {
+    const clinic = await Clinic.findById(clinicId);
+    if (!clinic) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Clinic not found" });
+    }
+
+    res.status(200).json({ success: true, clinic });
+  } catch (error) {
+    console.error("Error fetching clinic:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
 
@@ -253,6 +271,25 @@ export const updateClinic = async (req, res) => {
 
 export const deleteClinic = async (req, res) => {
   const { id } = req.params;
+
+  const userId = req.user.id;
+  const userRole = req.user.role;
+
+  // check if the doctor has last clinic and try to delete the clinic
+  if (userRole === "staff") {
+    return res.status(403).json({
+      success: false,
+      message: "Staff cannot delete clinics",
+    });
+  }
+
+  const allClinics = await Clinic.find({ doctorId: userId });
+  if (allClinics.length === 1) {
+    return res.status(403).json({
+      success: false,
+      message: "You cannot delete the last clinic",
+    });
+  }
 
   try {
     const clinic = await Clinic.findByIdAndDelete(id);
