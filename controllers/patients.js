@@ -73,11 +73,11 @@ export const createPatient = async (req, res) => {
     // Check if this patientId already exists (shouldn't usually happen)
     const existingPatient = await Patient.findOne({ patientId: nextPatientId });
 
-    const existingPatientEmail = await Patient.findOne({
-      email: req.body.email,
-    });
+    // const existingPatientEmail = await Patient.findOne({
+    //   email: req.body.email,
+    // });
 
-    if (existingPatient || existingPatientEmail) {
+    if (existingPatient) {
       return res
         .status(400)
         .json({ message: "Duplicate patient detected. Try again." });
