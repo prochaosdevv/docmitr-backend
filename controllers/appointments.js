@@ -113,16 +113,16 @@ export const createAppointment = async (req, res) => {
       });
     }
 
-    const existingAppointment = await Appoinment.findOne({
-      doctorId,
-      clinicId,
-      email: req.body.email,
-      appointmentDate: appointmentData.appointmentDate,
-    });
+    // const existingAppointment = await Appoinment.findOne({
+    //   doctorId,
+    //   clinicId,
+    //   email: req.body.email,
+    //   appointmentDate: appointmentData.appointmentDate,
+    // });
 
-    if (existingAppointment) {
-      return res.status(400).json({ message: "Appointment already exists" });
-    }
+    // if (existingAppointment) {
+    //   return res.status(400).json({ message: "Appointment already exists" });
+    // }
 
     // Generate custom appointmentId
     const lastAppointment = await Appoinment.findOne({})
