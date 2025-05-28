@@ -5,6 +5,7 @@ import FindingsProperties from "../models/FindingsProperties.js";
 import Symptoms from "../models/Symptoms.js";
 import SymptomsProperties from "../models/SymptomsProperties.js";
 import Diagnosis from "../models/Diagnosis.js";
+import Investigation from "../models/Investigation.js";
 
 export const createSymptomByAdmin = async (req, res) => {
   try {
@@ -1489,6 +1490,63 @@ export const deleteDiagnosis = async (req, res) => {
     res.status(200).json({ message: "Diagnosis deleted successfully." });
   } catch (error) {
     console.log("Error deleting diagnosis:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// investigations
+
+export const getPaginatedInvestigations = async (req, res) => {
+  try {
+    const selectedCount = parseInt(req.query.selectedCount || "0");
+
+    // Destructure from authenticated user
+    const { id, role } = req.user;
+    let filter = {};
+
+    // Build filter
+    if (role === "admin") {
+      // Admin: show only global symptoms created by admins
+      filter = { isAdmin: true };
+    } else if (role === "doctor") {
+      // Doctor: show only their own symptoms
+      filter = { doctorId: id };
+    } else {
+      return res.status(403).json({ message: "Unauthorized role" });
+    }
+
+    // Fetch all investigations sorted by _id (or customize the sort logic)
+    const allInvestigations = await Investigation.find(filter)
+      .sort({ _id: 1 })
+      .lean();
+
+    // Calculate total items to return: first 6 + 1 for each selected checkbox
+    const limit = 6 + selectedCount;
+    const visibleInvestigations = allInvestigations.slice(0, limit);
+
+    res.status(200).json({ investigations: visibleInvestigations });
+  } catch (err) {
+    console.error("Error fetching investigations:", err);
+    res.status(500).json({ message: "Failed to fetch investigations" });
+  }
+};
+
+export const searchInvestigations = async (req, res) => {
+  try {
+    const { query } = req.query; // search query from request
+    if (!query) {
+      return res.status(400).json({ message: "Search query is required." });
+    }
+    // Use regex to perform case-insensitive search
+    const investigations = await Investigation.find({
+      name: { $regex: query, $options: "i" }, // case-insensitive search
+    }).sort({ createdAt: -1 });
+    if (investigations.length === 0) {
+      return res.status(200).json([]);
+    }
+    res.status(200).json({ investigations });
+  } catch (error) {
+    console.error("Error searching investigations:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };

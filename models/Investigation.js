@@ -8,7 +8,7 @@ const investigationSchema = new mongoose.Schema({
   doctorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Doctor",
-    required: true,
+    default: null,
   },
   isAdmin: {
     type: Boolean,

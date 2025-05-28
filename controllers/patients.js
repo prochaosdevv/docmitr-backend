@@ -83,9 +83,11 @@ export const createPatient = async (req, res) => {
         .json({ message: "Duplicate patient detected. Try again." });
     }
 
+    console.log(req.body);
+
     const newPatient = new Patient({
       patientId: nextPatientId,
-      clinicSpecificId: req.body.clinicSpecificId || null,
+      clinicSpecificId: req.body.clinicSpecificId || "",
       language: req.body.language || null,
       name: req.body.name,
       email: req.body.email,

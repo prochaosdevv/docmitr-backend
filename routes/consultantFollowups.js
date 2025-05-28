@@ -29,9 +29,11 @@ import {
   getAllSymptoms,
   getDiagnosisProperties,
   getFindingsProperties,
+  getPaginatedInvestigations,
   getSymptomProperties,
   searchDiagnosis,
   searchFindings,
+  searchInvestigations,
   searchSymptoms,
 } from "../controllers/consultantFollowups.js";
 
@@ -88,5 +90,10 @@ router.delete("/diagnosis-properties/delete", deleteDiagnosisCategory);
 router.put("/diagnosis-properties/edit", editDiagnosisProperty);
 router.get("/diagnosis/search", searchDiagnosis);
 router.delete("/diagnosis/delete/:diagnosisId", deleteDiagnosis);
+
+// investigations
+
+router.get("/investigations", getPaginatedInvestigations);
+router.get("/investigations/search", searchInvestigations);
 
 export const consultantFollowups = router;

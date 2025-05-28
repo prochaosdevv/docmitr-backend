@@ -4,7 +4,7 @@ const patientSchema = new mongoose.Schema(
   {
     patientUID: { type: String, default: null },
     thirdPartyUID: { type: String, default: null },
-    clinicSpecificId: { type: Number, unique: true, default: null },
+    clinicSpecificId: { type: String, default: "" },
 
     patientId: { type: String, unique: true },
 
