@@ -5,7 +5,9 @@ import FindingsProperties from "../models/FindingsProperties.js";
 import Symptoms from "../models/Symptoms.js";
 import SymptomsProperties from "../models/SymptomsProperties.js";
 import Diagnosis from "../models/Diagnosis.js";
-import Investigation from "../models/Investigation.js";
+import Investigation, { InvestigationPanel } from "../models/Investigation.js";
+import Instructions from "../models/Instructions.js";
+import Procedures from "../models/Procedures.js";
 
 export const createSymptomByAdmin = async (req, res) => {
   try {
@@ -65,7 +67,9 @@ export const getAllSymptoms = async (req, res) => {
       filter = { isAdmin: true };
     } else if (role === "doctor") {
       // Doctor: show only their own symptoms
-      filter = { doctorId: id };
+      filter = {
+        $or: [{ isAdmin: true }, { doctorId: id }],
+      };
     } else {
       return res.status(403).json({ message: "Unauthorized role" });
     }
@@ -390,13 +394,10 @@ export const getSymptomProperties = async (req, res) => {
       return res.status(404).json({ message: "Symptom not found." });
     }
 
-    let filter = { symptopId };
-
-    if (user.role === "doctor") {
-      filter.doctorId = user.id;
-    } else {
-      filter.isAdmin = true;
-    }
+    let filter = {
+      symptopId,
+      $or: [{ isAdmin: true }, { doctorId: user.id }],
+    };
 
     // Get all matching symptom properties documents
     const symptomPropertiesList = await SymptomsProperties.find(filter)
@@ -562,7 +563,9 @@ export const getAllFindings = async (req, res) => {
       filter = { isAdmin: true };
     } else if (role === "doctor") {
       // Doctor: show only their own symptoms
-      filter = { doctorId: id };
+      filter = {
+        $or: [{ isAdmin: true }, { doctorId: id }],
+      };
     } else {
       return res.status(403).json({ message: "Unauthorized role" });
     }
@@ -883,13 +886,10 @@ export const getFindingsProperties = async (req, res) => {
       return res.status(404).json({ message: "Finding not found." });
     }
 
-    let filter = { findingsId };
-
-    if (user.role === "doctor") {
-      filter.doctorId = user.id;
-    } else {
-      filter.isAdmin = true;
-    }
+    let filter = {
+      symptopId,
+      $or: [{ isAdmin: true }, { doctorId: user.id }],
+    };
 
     // Get all matching symptom properties documents
     const symptomPropertiesList = await FindingsProperties.find(filter)
@@ -1054,8 +1054,9 @@ export const getAllDiagnosis = async (req, res) => {
       // Admin: show only global symptoms created by admins
       filter = { isAdmin: true };
     } else if (role === "doctor") {
-      // Doctor: show only their own symptoms
-      filter = { doctorId: id };
+      filter = {
+        $or: [{ isAdmin: true }, { doctorId: id }],
+      };
     } else {
       return res.status(403).json({ message: "Unauthorized role" });
     }
@@ -1380,13 +1381,10 @@ export const getDiagnosisProperties = async (req, res) => {
       return res.status(404).json({ message: "Diagnosis not found." });
     }
 
-    let filter = { diagnosisId };
-
-    if (user.role === "doctor") {
-      filter.doctorId = user.id;
-    } else {
-      filter.isAdmin = true;
-    }
+    let filter = {
+      symptopId,
+      $or: [{ isAdmin: true }, { doctorId: user.id }],
+    };
 
     // Get all matching symptom properties documents
     const symptomPropertiesList = await DiagnosisProperties.find(filter)
@@ -1496,24 +1494,59 @@ export const deleteDiagnosis = async (req, res) => {
 
 // investigations
 
+export const createInvestigationByAdmin = async (req, res) => {
+  try {
+    const { name } = req.body;
+    const admin = req.user;
+    if (!name) {
+      return res
+        .status(400)
+        .json({ message: "Investigation name is required" });
+    }
+    const newInvestigation = await Investigation.create({
+      name,
+      doctorId: null,
+      isAdmin: admin.role === "admin" ? true : false,
+    });
+    res.status(201).json(newInvestigation);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+export const createInvestigationByDoctor = async (req, res) => {
+  try {
+    const { name } = req.body;
+    const doctorId = req.user.id;
+    if (!name) {
+      return res
+        .status(400)
+        .json({ message: "Investigation name is required" });
+    }
+    const newInvestigation = await Investigation.create({
+      name,
+      doctorId,
+      isAdmin: false,
+    });
+    res.status(201).json({
+      success: true,
+      newInvestigation,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 export const getPaginatedInvestigations = async (req, res) => {
   try {
     const selectedCount = parseInt(req.query.selectedCount || "0");
 
     // Destructure from authenticated user
     const { id, role } = req.user;
-    let filter = {};
 
-    // Build filter
-    if (role === "admin") {
-      // Admin: show only global symptoms created by admins
-      filter = { isAdmin: true };
-    } else if (role === "doctor") {
-      // Doctor: show only their own symptoms
-      filter = { doctorId: id };
-    } else {
-      return res.status(403).json({ message: "Unauthorized role" });
-    }
+    let filter = {
+      $or: [{ isAdmin: true }, { doctorId: id }],
+    };
 
     // Fetch all investigations sorted by _id (or customize the sort logic)
     const allInvestigations = await Investigation.find(filter)
@@ -1531,6 +1564,20 @@ export const getPaginatedInvestigations = async (req, res) => {
   }
 };
 
+export const getInvestigationsByIds = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    const investigations = await Investigation.find({
+      _id: { $in: ids },
+    }).lean();
+
+    res.status(200).json({ investigations });
+  } catch (err) {
+    console.error("Error fetching investigations by IDs:", err);
+    res.status(500).json({ message: "Failed to fetch investigations" });
+  }
+};
+
 export const searchInvestigations = async (req, res) => {
   try {
     const { query } = req.query; // search query from request
@@ -1542,11 +1589,289 @@ export const searchInvestigations = async (req, res) => {
       name: { $regex: query, $options: "i" }, // case-insensitive search
     }).sort({ createdAt: -1 });
     if (investigations.length === 0) {
-      return res.status(200).json([]);
+      return res.status(200).json({ investigations: [] });
     }
     res.status(200).json({ investigations });
   } catch (error) {
     console.error("Error searching investigations:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const createInvestigationPanel = async (req, res) => {
+  try {
+    const { panelName, ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "IDs array is required." });
+    }
+
+    // Check if all IDs are valid ObjectIds
+    const invalidIds = ids.filter((id) => !mongoose.Types.ObjectId.isValid(id));
+
+    if (invalidIds.length > 0) {
+      return res.status(400).json({
+        message: "Invalid IDs found in the request.",
+        invalidIds,
+      });
+    }
+
+    // Check if all investigations exist
+    const investigations = await Investigation.find({
+      _id: { $in: ids },
+    });
+
+    if (investigations.length !== ids.length) {
+      return res.status(404).json({
+        message: "Some investigations not found.",
+        missingIds: ids.filter(
+          (id) => !investigations.some((inv) => inv._id.toString() === id)
+        ),
+      });
+    }
+
+    // Create a new InvestigationPanel
+    const newPanel = new InvestigationPanel({
+      panelName: panelName || "New Panel",
+      investigationIds: ids,
+    });
+
+    const savedPanel = await newPanel.save();
+    res.status(201).json({
+      success: true,
+      message: "Investigation panel created successfully.",
+      data: savedPanel,
+    });
+  } catch (error) {
+    console.log("Error creating investigation panel:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getInvestigationPanels = async (req, res) => {
+  try {
+    const panels = await InvestigationPanel.find()
+      .populate("investigationIds", "name")
+      .sort({ createdAt: -1 });
+
+    if (panels.length === 0) {
+      return res
+        .status(200)
+        .json({ message: "No investigation panels found." });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Investigation panels fetched successfully.",
+      data: panels,
+    });
+  } catch (error) {
+    console.error("Error fetching investigation panels:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const deleteInvestigationPanel = async (req, res) => {
+  try {
+    const { panelId } = req.params;
+
+    if (!panelId || !mongoose.Types.ObjectId.isValid(panelId)) {
+      return res.status(400).json({ message: "Valid panelId is required." });
+    }
+
+    // Check if the panel exists
+    const panel = await InvestigationPanel.findById(panelId);
+    if (!panel) {
+      return res
+        .status(404)
+        .json({ message: "Investigation panel not found." });
+    }
+
+    // Delete the panel
+    await InvestigationPanel.findByIdAndDelete(panelId);
+
+    res.status(200).json({
+      success: true,
+      message: "Investigation panel deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Error deleting investigation panel:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// instructions
+
+export const createInstructionsByAdmin = async (req, res) => {
+  try {
+    const { name } = req.body;
+    const admin = req.user;
+    if (!name) {
+      return res.status(400).json({ message: "Instruction name is required" });
+    }
+    const newInvestigation = await Instructions.create({
+      name,
+      doctorId: null,
+      isAdmin: admin.role === "admin" ? true : false,
+    });
+    res.status(201).json(newInvestigation);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const createInstructionsByDoctor = async (req, res) => {
+  try {
+    const { name } = req.body;
+    const doctorId = req.user.id;
+    if (!name) {
+      return res.status(400).json({ message: "Instruction name is required" });
+    }
+    const newInvestigation = await Instructions.create({
+      name,
+      doctorId,
+      isAdmin: false,
+    });
+    res.status(201).json({
+      success: true,
+      newInvestigation,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getPaginatedInstructions = async (req, res) => {
+  try {
+    const selectedCount = parseInt(req.query.selectedCount || "0");
+
+    // Destructure from authenticated user
+    const { id, role } = req.user;
+
+    let filter = {
+      $or: [{ isAdmin: true }, { doctorId: id }],
+    };
+
+    // Fetch all investigations sorted by _id (or customize the sort logic)
+    const allInvestigations = await Instructions.find(filter)
+      .sort({ _id: 1 })
+      .lean();
+
+    // Calculate total items to return: first 6 + 1 for each selected checkbox
+    const limit = 6 + selectedCount;
+    const visibleInvestigations = allInvestigations.slice(0, limit);
+
+    res.status(200).json({ instructions: visibleInvestigations });
+  } catch (err) {
+    console.error("Error fetching instructions:", err);
+    res.status(500).json({ message: "Failed to fetch instructions" });
+  }
+};
+
+export const searchInstructions = async (req, res) => {
+  try {
+    const { query } = req.query; // search query from request
+    if (!query) {
+      return res.status(400).json({ message: "Search query is required." });
+    }
+    // Use regex to perform case-insensitive search
+    const instructions = await Instructions.find({
+      name: { $regex: query, $options: "i" }, // case-insensitive search
+    }).sort({ createdAt: -1 });
+    if (instructions.length === 0) {
+      return res.status(200).json({ instructions: [] });
+    }
+    res.status(200).json({ instructions });
+  } catch (error) {
+    console.error("Error searching instructions:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// procedures
+
+export const createProcedureByAdmin = async (req, res) => {
+  try {
+    const { name } = req.body;
+    const admin = req.user;
+    if (!name) {
+      return res.status(400).json({ message: "Procedure name is required" });
+    }
+    const newInvestigation = await Procedures.create({
+      name,
+      doctorId: null,
+      isAdmin: admin.role === "admin" ? true : false,
+    });
+    res.status(201).json(newInvestigation);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const createProcedureByDoctor = async (req, res) => {
+  try {
+    const { name } = req.body;
+    const doctorId = req.user.id;
+    if (!name) {
+      return res.status(400).json({ message: "Procedure name is required" });
+    }
+    const newInvestigation = await Procedures.create({
+      name,
+      doctorId,
+      isAdmin: false,
+    });
+    res.status(201).json({
+      success: true,
+      newInvestigation,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getPaginatedProcedures = async (req, res) => {
+  try {
+    const selectedCount = parseInt(req.query.selectedCount || "0");
+
+    // Destructure from authenticated user
+    const { id, role } = req.user;
+
+    let filter = {
+      $or: [{ isAdmin: true }, { doctorId: id }],
+    };
+
+    // Fetch all investigations sorted by _id (or customize the sort logic)
+    const allInvestigations = await Procedures.find(filter)
+      .sort({ _id: 1 })
+      .lean();
+
+    // Calculate total items to return: first 6 + 1 for each selected checkbox
+    const limit = 6 + selectedCount;
+    const visibleInvestigations = allInvestigations.slice(0, limit);
+
+    res.status(200).json({ procedures: visibleInvestigations });
+  } catch (err) {
+    console.error("Error fetching procedures:", err);
+    res.status(500).json({ message: "Failed to fetch procedures" });
+  }
+};
+
+export const searchProcedures = async (req, res) => {
+  try {
+    const { query } = req.query; // search query from request
+    if (!query) {
+      return res.status(400).json({ message: "Search query is required." });
+    }
+    // Use regex to perform case-insensitive search
+    const procedures = await Procedures.find({
+      name: { $regex: query, $options: "i" }, // case-insensitive search
+    }).sort({ createdAt: -1 });
+    if (procedures.length === 0) {
+      return res.status(200).json({ procedures: [] });
+    }
+    res.status(200).json({ procedures });
+  } catch (error) {
+    console.error("Error searching procedures:", error);
+    res.status(500).json({ message: error.message });
   }
 };

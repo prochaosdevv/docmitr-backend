@@ -83,10 +83,16 @@ export const createPatient = async (req, res) => {
         .json({ message: "Duplicate patient detected. Try again." });
     }
 
-    console.log(req.body);
+    const doctorId =
+      req.user.role === "doctor"
+        ? req.user.id
+        : req.user.role === "staff"
+        ? req.user.doctorId
+        : null;
 
     const newPatient = new Patient({
       patientId: nextPatientId,
+      doctorId: doctorId || null,
       clinicSpecificId: req.body.clinicSpecificId || "",
       language: req.body.language || null,
       name: req.body.name,
@@ -217,15 +223,16 @@ export const updatePatient = async (req, res) => {
 
 export const deletePatient = async (req, res) => {
   try {
-    const deletedPatient = await Patient.findOneAndDelete({
-      patientId: req.params.id,
-    });
+    const deletedPatient = await Patient.findOneAndDelete(req.params.id);
 
     if (!deletedPatient) {
       return res.status(404).json({ message: "Patient not found" });
     }
 
-    res.json({ message: "Patient deleted successfully" });
+    // delete associated appointments
+    await Appoinment.deleteMany({ patientId: req.params.id });
+
+    res.json({ success: true, message: "Patient deleted successfully" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });

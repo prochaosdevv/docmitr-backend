@@ -11,6 +11,13 @@ import {
   createFindingPropertyByDoctor,
   createFindingsByAdmin,
   createFindingsByDoctor,
+  createInstructionsByAdmin,
+  createInstructionsByDoctor,
+  createInvestigationByAdmin,
+  createInvestigationByDoctor,
+  createInvestigationPanel,
+  createProcedureByAdmin,
+  createProcedureByDoctor,
   createSymptomByAdmin,
   createSymptomByDoctor,
   createSymptomPropertyByAdmin,
@@ -19,6 +26,7 @@ import {
   deleteDiagnosisCategory,
   deleteFinding,
   deleteFindingsCategory,
+  deleteInvestigationPanel,
   deleteSymptom,
   deleteSymptomCategory,
   editDiagnosisProperty,
@@ -29,11 +37,17 @@ import {
   getAllSymptoms,
   getDiagnosisProperties,
   getFindingsProperties,
+  getInvestigationPanels,
+  getInvestigationsByIds,
+  getPaginatedInstructions,
   getPaginatedInvestigations,
+  getPaginatedProcedures,
   getSymptomProperties,
   searchDiagnosis,
   searchFindings,
+  searchInstructions,
   searchInvestigations,
+  searchProcedures,
   searchSymptoms,
 } from "../controllers/consultantFollowups.js";
 
@@ -93,7 +107,26 @@ router.delete("/diagnosis/delete/:diagnosisId", deleteDiagnosis);
 
 // investigations
 
+router.post("/investigations/admin/create", createInvestigationByAdmin);
+router.post("/investigations/doctor/create", createInvestigationByDoctor);
 router.get("/investigations", getPaginatedInvestigations);
+router.post("/investigationsbyIds", getInvestigationsByIds);
 router.get("/investigations/search", searchInvestigations);
+router.post("/investigations/panel", createInvestigationPanel);
+router.get("/investigations/panel", getInvestigationPanels);
+router.delete("/investigations/panel/:panelId", deleteInvestigationPanel);
+
+// instructions
+router.post("/instructions/admin/create", createInstructionsByAdmin);
+router.post("/instructions/doctor/create", createInstructionsByDoctor);
+router.get("/instructions", getPaginatedInstructions);
+router.get("/instructions/search", searchInstructions);
+
+// procedures
+
+router.post("/procedures/admin/create", createProcedureByAdmin);
+router.post("/procedures/doctor/create", createProcedureByDoctor);
+router.get("/procedures", getPaginatedProcedures);
+router.get("/procedures/search", searchProcedures);
 
 export const consultantFollowups = router;
