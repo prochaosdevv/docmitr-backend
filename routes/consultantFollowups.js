@@ -3,6 +3,8 @@ import {
   addOnDiagnosisProperties,
   addOnFindingsProperties,
   addOnSymptomProperties,
+  allMedicineCategories,
+  allMedicineCompositions,
   createDiagnosisByAdmin,
   createDiagnosisByDoctor,
   createDiagnosisPropertyByAdmin,
@@ -16,6 +18,8 @@ import {
   createInvestigationByAdmin,
   createInvestigationByDoctor,
   createInvestigationPanel,
+  createMedicineByAdmin,
+  createMedicineByDoctor,
   createProcedureByAdmin,
   createProcedureByDoctor,
   createSymptomByAdmin,
@@ -41,12 +45,14 @@ import {
   getInvestigationsByIds,
   getPaginatedInstructions,
   getPaginatedInvestigations,
+  getPaginatedMedicines,
   getPaginatedProcedures,
   getSymptomProperties,
   searchDiagnosis,
   searchFindings,
   searchInstructions,
   searchInvestigations,
+  searchMedicines,
   searchProcedures,
   searchSymptoms,
 } from "../controllers/consultantFollowups.js";
@@ -128,5 +134,13 @@ router.post("/procedures/admin/create", createProcedureByAdmin);
 router.post("/procedures/doctor/create", createProcedureByDoctor);
 router.get("/procedures", getPaginatedProcedures);
 router.get("/procedures/search", searchProcedures);
+
+// medicines
+router.post("/medicines/admin/create", createMedicineByAdmin);
+router.post("/medicines/doctor/create", createMedicineByDoctor);
+router.get("/medicines", getPaginatedMedicines); // Assuming this should be a different endpoint
+router.get("/medicines/search", searchMedicines);
+router.get("/medicines/categories/search", allMedicineCategories);
+router.get("/medicines/compositions/search", allMedicineCompositions);
 
 export const consultantFollowups = router;

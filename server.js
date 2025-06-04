@@ -22,6 +22,7 @@ import { headoutRouter } from "./routes/headouts.js";
 import { smsRouter } from "./routes/sms.js";
 import { vitalsRouter } from "./routes/vitals.js";
 import { consultantFollowups } from "./routes/consultantFollowups.js";
+import { historyTemplatesRoutes } from "./routes/medicalHistroy.js";
 
 // Load environment variables
 dotenv.config();
@@ -51,6 +52,11 @@ app.use(
   "/docmitr/api/cosultant-followup",
   authenticateToken,
   consultantFollowups
+);
+app.use(
+  "/docmitr/api/medical-history",
+  authenticateToken,
+  historyTemplatesRoutes
 );
 app.use("/docmitr/api/templates", templateRoutes);
 app.use("/docmitr/api/drugs", drugsRouter);

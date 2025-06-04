@@ -1,34 +1,57 @@
+import VitalMaster from "../models/VitalMaster.js";
 import Vital from "../models/Vitals.js";
 
-export const createVital = async (req, res) => {
+// Create or Update Vital by date + appointmentId + patientId
+export const createOrUpdateVital = async (req, res) => {
   try {
-    const { data, appointmentId, patientId } = req.body; // `data` is the array of vitals
+    const { date, appointmentId, patientId, vitalId, vitalValue } = req.body;
     const doctorId = req.user.id;
 
-    if (!Array.isArray(data) || data.length === 0) {
-      return res.status(400).json({ error: "No vital data provided." });
+    if (!date || !appointmentId || !patientId) {
+      return res.status(400).json({ error: "Missing required vital fields." });
     }
 
-    const createdVitals = [];
+    // Check if vital already exists for same date, appointment, and patient
+    const existingVital = await Vital.findOne({
+      date,
+      appointmentId,
+      patientId,
+    });
 
-    for (const entry of data) {
-      const { date, ...vitalData } = entry;
+    if (existingVital) {
+      const index = existingVital.vitalsData.findIndex(
+        (v) => v.vitalId.toString() === vitalId.toString()
+      );
 
-      const vital = new Vital({
-        date,
-        appointmentId,
-        patientId,
-        doctorId,
-        ...vitalData,
-      });
+      if (index > -1) {
+        // Update existing vital value
+        existingVital.vitalsData[index].vitalId = vitalId;
+        existingVital.vitalsData[index].vitalValue = vitalValue;
+      } else {
+        // Add new vital entry
+        existingVital.vitalsData.push({
+          vitalId,
+          vitalValue,
+        });
+      }
 
-      await vital.save();
-      createdVitals.push(vital);
+      await existingVital.save();
+      return res.status(200).json({ success: true, vitals: existingVital });
     }
 
-    res.status(201).json({ success: true, vitals: createdVitals });
+    // If not found, create new
+    const newVital = new Vital({
+      date,
+      doctorId,
+      appointmentId,
+      patientId,
+      vitalsData: [{ vitalId, vitalValue }],
+    });
+
+    await newVital.save();
+    res.status(201).json({ success: true, vitals: newVital });
   } catch (error) {
-    console.error("Error creating vitals:", error);
+    console.error("Error saving vital:", error);
     res.status(400).json({ error: error.message });
   }
 };
@@ -45,14 +68,32 @@ export const getAllVitals = async (req, res) => {
 export const getVitalById = async (req, res) => {
   const { patientId, appointmentId } = req.query;
   try {
-    const vital = await Vital.find({
-      appointmentId: appointmentId,
-      patientId: patientId,
-    });
-    if (!vital) {
+    const vitals = await Vital.find({
+      appointmentId,
+      patientId,
+    })
+      .sort({ createdAt: -1 })
+      .populate("vitalsData.vitalId", "vitalName unitType");
+
+    if (!vitals) {
       return res.status(404).json({ error: "Vital not found" });
     }
-    res.json(vital);
+
+    console.log(JSON.stringify(vitals, null, 2), "fdfd");
+
+    // Transform vitalsData
+    const transformedVitals = vitals.map((vital) => ({
+      ...vital.toObject(),
+      vitalsData: vital.vitalsData.map((entry) => ({
+        _id: entry._id, // Keep original subdoc ID
+        vitalId: entry.vitalId?._id || null, // Explicitly add vitalId
+        vitalValue: entry.vitalValue,
+        vitalName: entry.vitalId?.vitalName || "",
+        unitType: entry.vitalId?.unitType || "",
+      })),
+    }));
+
+    res.json(transformedVitals);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -84,6 +125,15 @@ export const deleteVital = async (req, res) => {
       return res.status(404).json({ error: "Vital not found" });
     }
     res.json({ message: "Vital deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getAllMasterVitals = async (req, res) => {
+  try {
+    const vitals = await VitalMaster.find();
+    res.json(vitals);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

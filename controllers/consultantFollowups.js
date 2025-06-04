@@ -8,6 +8,9 @@ import Diagnosis from "../models/Diagnosis.js";
 import Investigation, { InvestigationPanel } from "../models/Investigation.js";
 import Instructions from "../models/Instructions.js";
 import Procedures from "../models/Procedures.js";
+import Medicine from "../models/Medicine.js";
+import Composition from "../models/Composition.js";
+import MedicineCategory from "../models/MedicineCategory.js";
 
 export const createSymptomByAdmin = async (req, res) => {
   try {
@@ -1872,6 +1875,236 @@ export const searchProcedures = async (req, res) => {
     res.status(200).json({ procedures });
   } catch (error) {
     console.error("Error searching procedures:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// medicines
+
+export const createMedicineByAdmin = async (req, res) => {
+  try {
+    const { name, categoryId, categoryName, compositionID, compositionName } =
+      req.body;
+
+    const admin = req.user;
+
+    if (
+      !name ||
+      (!categoryId && !categoryName) ||
+      (!compositionID && !compositionName)
+    ) {
+      return res
+        .status(400)
+        .json({ message: "All required fields must be provided." });
+    }
+
+    let category;
+    if (categoryId) {
+      category = await MedicineCategory.findById(categoryId);
+      if (!category) {
+        return res.status(404).json({ message: "Category not found by ID." });
+      }
+    } else {
+      category = await MedicineCategory.findOne({ name: categoryName.trim() });
+      if (!category) {
+        category = await MedicineCategory.create({
+          name: categoryName.trim(),
+          doctorId: null,
+          isAdmin: true,
+        });
+      }
+    }
+
+    let composition;
+    if (compositionID) {
+      composition = await Composition.findById(compositionID);
+      if (!composition) {
+        return res
+          .status(404)
+          .json({ message: "Composition not found by ID." });
+      }
+    } else {
+      composition = await Composition.findOne({
+        compositionName: compositionName.trim(),
+      });
+      if (!composition) {
+        composition = await Composition.create({
+          compositionName: compositionName.trim(),
+          doctorId: null,
+          isAdmin: true,
+        });
+      }
+    }
+
+    const newMedicine = await Medicine.create({
+      name,
+      categoryId: category._id,
+      categoryName: category.name,
+      compositionId: composition._id,
+      compositionName: composition.compositionName,
+      doctorId: null,
+      isAdmin: admin.role === "admin" ? true : false,
+    });
+
+    res.status(201).json(newMedicine);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const createMedicineByDoctor = async (req, res) => {
+  try {
+    const { name, categoryId, categoryName, compositionID, compositionName } =
+      req.body;
+
+    const doctorId = req.user.id;
+
+    if (
+      !name ||
+      (!categoryId && !categoryName) ||
+      (!compositionID && !compositionName)
+    ) {
+      return res
+        .status(400)
+        .json({ message: "All required fields must be provided." });
+    }
+
+    let category;
+    if (categoryId) {
+      category = await MedicineCategory.findById(categoryId);
+      if (!category) {
+        return res.status(404).json({ message: "Category not found by ID." });
+      }
+    } else {
+      category = await MedicineCategory.findOne({
+        name: categoryName.trim(),
+        doctorId,
+      });
+      if (!category) {
+        category = await MedicineCategory.create({
+          name: categoryName.trim(),
+          doctorId,
+          isAdmin: false,
+        });
+      }
+    }
+
+    let composition;
+    if (compositionID) {
+      composition = await Composition.findById(compositionID);
+      if (!composition) {
+        return res
+          .status(404)
+          .json({ message: "Composition not found by ID." });
+      }
+    } else {
+      composition = await Composition.findOne({
+        compositionName: compositionName.trim(),
+        doctorId,
+      });
+      if (!composition) {
+        composition = await Composition.create({
+          compositionName: compositionName.trim(),
+          doctorId,
+          isAdmin: false,
+        });
+      }
+    }
+
+    const newMedicine = await Medicine.create({
+      name,
+      categoryId: category._id,
+      categoryName: category.name,
+      compositionId: composition._id,
+      compositionName: composition.compositionName,
+      doctorId,
+      isAdmin: false,
+    });
+
+    res.status(201).json({
+      success: true,
+      newMedicine,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getPaginatedMedicines = async (req, res) => {
+  try {
+    const selectedCount = parseInt(req.query.selectedCount || "0");
+
+    // Destructure from authenticated user
+    const { id, role } = req.user;
+
+    let filter = {
+      $or: [{ isAdmin: true }, { doctorId: id }],
+    };
+
+    // Fetch all medicines sorted by _id (or customize the sort logic)
+    const allMedicines = await Medicine.find(filter).sort({ _id: 1 }).lean();
+
+    // Calculate total items to return: first 6 + 1 for each selected checkbox
+    const limit = 8 + selectedCount;
+    const visibleMedicines = allMedicines.slice(0, limit);
+
+    res.status(200).json({ medicines: visibleMedicines });
+  } catch (err) {
+    console.error("Error fetching medicines:", err);
+    res.status(500).json({ message: "Failed to fetch medicines" });
+  }
+};
+
+export const searchMedicines = async (req, res) => {
+  try {
+    const { query } = req.query; // search query from request
+    if (!query) {
+      return res.status(400).json({ message: "Search query is required." });
+    }
+    // Use regex to perform case-insensitive search
+    const medicines = await Medicine.find({
+      name: { $regex: query, $options: "i" }, // case-insensitive search
+    }).sort({ createdAt: -1 });
+    if (medicines.length === 0) {
+      return res.status(200).json({ medicines: [] });
+    }
+    res.status(200).json({ medicines });
+  } catch (error) {
+    console.error("Error searching medicines:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const allMedicineCategories = async (req, res) => {
+  try {
+    const result = await MedicineCategory.find()
+      .sort({ createdAt: -1 })
+      .populate("doctorId", "name");
+
+    if (result.length === 0) {
+      return res.status(200).json({ categories: [] });
+    }
+
+    res.status(200).json({ categories: result });
+  } catch (error) {
+    console.error("Error searching medicine categories:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const allMedicineCompositions = async (req, res) => {
+  try {
+    const result = await Composition.find()
+      .sort({ createdAt: -1 })
+      .populate("doctorId", "name");
+
+    if (result.length === 0) {
+      return res.status(200).json({ compositions: [] });
+    }
+
+    res.status(200).json({ compositions: result });
+  } catch (error) {
+    console.error("Error searching compositions:", error);
     res.status(500).json({ message: error.message });
   }
 };
