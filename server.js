@@ -23,6 +23,8 @@ import { smsRouter } from "./routes/sms.js";
 import { vitalsRouter } from "./routes/vitals.js";
 import { consultantFollowups } from "./routes/consultantFollowups.js";
 import { historyTemplatesRoutes } from "./routes/medicalHistroy.js";
+import { labTestsRoute } from "./routes/labtests.js";
+import { attachmentRoute } from "./routes/attachment.js";
 
 // Load environment variables
 dotenv.config();
@@ -58,6 +60,8 @@ app.use(
   authenticateToken,
   historyTemplatesRoutes
 );
+app.use("/docmitr/api/attachments", authenticateToken, attachmentRoute);
+app.use("/docmitr/api/labtests", authenticateToken, labTestsRoute);
 app.use("/docmitr/api/templates", templateRoutes);
 app.use("/docmitr/api/drugs", drugsRouter);
 app.use("/docmitr/api/headouts", headoutRouter);
