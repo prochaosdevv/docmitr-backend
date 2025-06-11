@@ -3,6 +3,7 @@ import {
   addOnDiagnosisProperties,
   addOnFindingsProperties,
   addOnSymptomProperties,
+  addOrSaveConsultSymptomsData,
   allMedicineCategories,
   allMedicineCompositions,
   createDiagnosisByAdmin,
@@ -31,6 +32,7 @@ import {
   deleteFinding,
   deleteFindingsCategory,
   deleteInvestigationPanel,
+  deletePatientSymptoms,
   deleteSymptom,
   deleteSymptomCategory,
   editDiagnosisProperty,
@@ -38,7 +40,9 @@ import {
   editSymptomProperty,
   getAllDiagnosis,
   getAllFindings,
+  getAllSavedTemplates,
   getAllSymptoms,
+  getDataByTemplateId,
   getDiagnosisProperties,
   getFindingsProperties,
   getInvestigationPanels,
@@ -48,6 +52,7 @@ import {
   getPaginatedMedicines,
   getPaginatedProcedures,
   getSymptomProperties,
+  saveDataToTemplate,
   searchDiagnosis,
   searchFindings,
   searchInstructions,
@@ -73,6 +78,8 @@ router.delete("/symptoms-properties/delete", deleteSymptomCategory);
 router.put("/symptoms-properties/edit", editSymptomProperty);
 router.get("/symptoms/search", searchSymptoms);
 router.delete("/symptoms/delete/:symptopId", deleteSymptom);
+
+router.post("/symptoms/save", addOrSaveConsultSymptomsData);
 
 // findings
 
@@ -142,5 +149,10 @@ router.get("/medicines", getPaginatedMedicines); // Assuming this should be a di
 router.get("/medicines/search", searchMedicines);
 router.get("/medicines/categories/search", allMedicineCategories);
 router.get("/medicines/compositions/search", allMedicineCompositions);
+
+router.post("/templates/appointments/save", saveDataToTemplate);
+router.get("/templates/saved", getAllSavedTemplates);
+router.get("/templates/data/:templateId", getDataByTemplateId);
+router.delete("/templates/data/delete/:symptomId", deletePatientSymptoms);
 
 export const consultantFollowups = router;

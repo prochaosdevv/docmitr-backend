@@ -11,6 +11,8 @@ import Procedures from "../models/Procedures.js";
 import Medicine from "../models/Medicine.js";
 import Composition from "../models/Composition.js";
 import MedicineCategory from "../models/MedicineCategory.js";
+import PatientSymptoms from "../models/PatientSymptoms.js";
+import TemplateList from "../models/TemplateList.js";
 
 export const createSymptomByAdmin = async (req, res) => {
   try {
@@ -394,7 +396,9 @@ export const getSymptomProperties = async (req, res) => {
     const symptom = await Symptoms.findById(symptopId);
 
     if (!symptom) {
-      return res.status(404).json({ message: "Symptom not found." });
+      return res
+        .status(200)
+        .json({ message: "Symptom not found.", details: [] });
     }
 
     let filter = {
@@ -886,11 +890,13 @@ export const getFindingsProperties = async (req, res) => {
     const symptom = await Findings.findById(findingsId);
 
     if (!symptom) {
-      return res.status(404).json({ message: "Finding not found." });
+      return res
+        .status(200)
+        .json({ message: "Finding not found.", details: [] });
     }
 
     let filter = {
-      symptopId,
+      findingsId,
       $or: [{ isAdmin: true }, { doctorId: user.id }],
     };
 
@@ -1381,11 +1387,13 @@ export const getDiagnosisProperties = async (req, res) => {
     const symptom = await Diagnosis.findById(diagnosisId);
 
     if (!symptom) {
-      return res.status(404).json({ message: "Diagnosis not found." });
+      return res
+        .status(200)
+        .json({ message: "Diagnosis not found.", details: [] });
     }
 
     let filter = {
-      symptopId,
+      diagnosisId,
       $or: [{ isAdmin: true }, { doctorId: user.id }],
     };
 
@@ -2106,5 +2114,407 @@ export const allMedicineCompositions = async (req, res) => {
   } catch (error) {
     console.error("Error searching compositions:", error);
     res.status(500).json({ message: error.message });
+  }
+};
+
+// create or save records for template list
+
+export const addOrSaveConsultSymptomsData = async (req, res) => {
+  try {
+    const {
+      appointmentId,
+      templateId,
+      symptomId, // Note: This should match 'sympotmId' from schema
+      note,
+      since,
+      severity,
+      details = [],
+    } = req.body;
+
+    // Validate appointmentId
+    if (!appointmentId || !mongoose.Types.ObjectId.isValid(appointmentId)) {
+      return res
+        .status(400)
+        .json({ message: "Valid appointmentId is required." });
+    }
+
+    // Validate symptomId (note the field name difference)
+    if (!symptomId || !mongoose.Types.ObjectId.isValid(symptomId)) {
+      return res.status(400).json({ message: "Valid symptomId is required." });
+    }
+
+    // Validate details structure if provided
+    if (details && Array.isArray(details)) {
+      for (const detail of details) {
+        if (
+          !detail.detailId ||
+          !mongoose.Types.ObjectId.isValid(detail.detailId)
+        ) {
+          return res
+            .status(400)
+            .json({ message: "Each detail must have a valid detailId" });
+        }
+        if (detail.properties && Array.isArray(detail.properties)) {
+          for (const property of detail.properties) {
+            if (
+              !property.propertyId ||
+              !mongoose.Types.ObjectId.isValid(property.propertyId)
+            ) {
+              return res.status(400).json({
+                message: "Each property must have a valid propertyId",
+              });
+            }
+          }
+        }
+      }
+    }
+
+    // Check for existing record
+    const existingRecord = await PatientSymptoms.findOne({
+      appointmentId: appointmentId,
+      symptomId: symptomId, // Note the schema field name
+    });
+
+    if (existingRecord) {
+      existingRecord.templateId = templateId || existingRecord.templateId;
+      existingRecord.note = note || existingRecord.note;
+      existingRecord.since = since || existingRecord.since;
+      existingRecord.severity = severity || existingRecord.severity;
+
+      if (details && details.length) {
+        for (const newDetail of details) {
+          const existingDetail = existingRecord.details.find(
+            (d) => d.detailId.toString() === newDetail.detailId.toString()
+          );
+
+          if (!existingDetail) {
+            // If detailId is new, add it
+            existingRecord.details.push(newDetail);
+          } else {
+            // Check properties inside that detail
+            for (const newProp of newDetail.properties) {
+              const existingProp = existingDetail.properties.find(
+                (p) => p.propertyId.toString() === newProp.propertyId.toString()
+              );
+              if (!existingProp) {
+                existingDetail.properties.push(newProp);
+              } else {
+                existingProp.propertyValue = newProp.propertyValue;
+              }
+            }
+          }
+        }
+      }
+
+      const updatedConsultData = await existingRecord.save();
+      return res.status(200).json({
+        message: "Consultation data updated successfully",
+        data: updatedConsultData,
+      });
+    } else {
+      // Create new record
+      const newConsultData = new PatientSymptoms({
+        appointmentId,
+        templateId: templateId || null,
+        symptomId: symptomId, // Note the schema field name
+        note: note || null,
+        since: since || null,
+        severity: severity || null,
+        details,
+      });
+
+      const savedConsultData = await newConsultData.save();
+      return res.status(201).json({
+        message: "Consultation data added successfully",
+        data: savedConsultData,
+      });
+    }
+  } catch (error) {
+    console.error("Error in addOrSaveConsultData:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+export const saveDataToTemplate = async (req, res) => {
+  try {
+    const { appointmentId, patientName, templateId } = req.body;
+
+    console.log("Request body for saveDataToTemplate:", req.body);
+
+    const createdDate = new Date();
+    const formattedDate = createdDate.toLocaleDateString("en-US", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+
+    let existTemplateId = null;
+
+    if (templateId) {
+      // If templateId is provided, check if it exists
+      const existingTemplate = await TemplateList.findById(templateId);
+
+      if (existingTemplate) {
+        existTemplateId = existingTemplate._id;
+        console.log("existTemplateId:", existTemplateId);
+
+        return res.status(200).json({
+          success: true,
+          message: "Existing template found",
+          templateId: existTemplateId,
+        });
+      }
+    }
+
+    // Create a new template if templateId is not provided or not found
+    const newTemplate = new TemplateList({
+      name: patientName || "Untitled Template",
+      date: formattedDate,
+    });
+
+    await newTemplate.save();
+    existTemplateId = newTemplate._id;
+
+    console.log("existTemplateId (new):", existTemplateId);
+
+    // Update templateId in PatientSymptoms
+    await PatientSymptoms.updateMany(
+      { appointmentId: appointmentId },
+      { $set: { templateId: existTemplateId } }
+    );
+
+    res.status(201).json({
+      message: "Data saved to new template successfully",
+      templateId: existTemplateId,
+    });
+  } catch (error) {
+    console.error("Error saving data to template:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+export const getAllSavedTemplates = async (req, res) => {
+  try {
+    const templates = await TemplateList.find().sort({ createdAt: -1 });
+
+    if (templates.length === 0) {
+      return res.status(200).json({ templates: [] });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Templates fetched successfully.",
+      data: templates,
+    });
+  } catch (error) {
+    console.error("Error fetching templates:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getDataByTemplateId = async (req, res) => {
+  try {
+    const { templateId } = req.params;
+
+    if (!templateId) {
+      return res.status(400).json({
+        success: false,
+        message: "Template ID is required",
+      });
+    }
+
+    // Find all patient items that use this templateId
+    const patientItems = await PatientSymptoms.find({
+      templateId: { $eq: templateId },
+    });
+
+    if (!patientItems || patientItems.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No data found for this template",
+      });
+    }
+
+    // Collect all symptom IDs to fetch their details
+    const symptomIds = patientItems.map((item) => item.symptomId);
+
+    // Fetch all symptoms and findings data in one go
+    const allSymptoms = await Symptoms.find({ _id: { $in: symptomIds } });
+    const allFindings = await Findings.find({ _id: { $in: symptomIds } });
+    const allDiagnosis = await Diagnosis.find({ _id: { $in: symptomIds } });
+
+    // Create lookup maps for quick access
+    const symptomsMap = {};
+    allSymptoms.forEach((symptom) => {
+      symptomsMap[symptom._id.toString()] = {
+        ...symptom.toObject(),
+        type: "symptom",
+      };
+    });
+
+    const findingsMap = {};
+    allFindings.forEach((finding) => {
+      findingsMap[finding._id.toString()] = {
+        ...finding.toObject(),
+        type: "finding",
+      };
+    });
+
+    const diagnosisMap = {};
+    allDiagnosis.forEach((diagnosis) => {
+      diagnosisMap[diagnosis._id.toString()] = {
+        ...diagnosis.toObject(),
+        type: "diagnosis",
+      };
+    });
+
+    // Create a result object to store the formatted data
+    const result = {
+      appointmentId: patientItems[0].appointmentId,
+      templateId,
+      symptoms: [],
+    };
+
+    // Process each patient item
+    for (const item of patientItems) {
+      const symptomId = item.symptomId.toString();
+
+      // Determine if this is a symptom, finding, or diagnosis
+      let itemType = "unknown";
+      let itemData = null;
+
+      if (symptomsMap[symptomId]) {
+        itemType = "symptom";
+        itemData = symptomsMap[symptomId];
+      } else if (findingsMap[symptomId]) {
+        itemType = "finding";
+        itemData = findingsMap[symptomId];
+      } else if (diagnosisMap[symptomId]) {
+        itemType = "diagnosis";
+        itemData = diagnosisMap[symptomId];
+      }
+
+      // If we couldn't determine the type, log and skip
+      if (itemType === "unknown") {
+        console.log(`Could not find data for item with ID: ${symptomId}`);
+        continue;
+      }
+
+      // Create the basic item object
+      const itemObj = {
+        symptomId: item.symptomId,
+        name: itemData.name, // Include name from the source collection
+        note: item.note || null,
+        details: [],
+        type: itemType,
+      };
+
+      // Add type-specific properties
+      if (itemType === "diagnosis") {
+        itemObj.location = item.location || null;
+        itemObj.description = item.description || null;
+      } else {
+        // For symptoms and findings
+        itemObj.since = item.since || null;
+        itemObj.severity = item.severity || null;
+      }
+
+      // Get properties based on the item type
+      let itemProperties = null;
+      if (itemType === "symptom") {
+        itemProperties = await SymptomsProperties.findOne({
+          symptopId: item.symptomId,
+        });
+      } else if (itemType === "finding") {
+        itemProperties = await FindingsProperties.findOne({
+          findingId: item.symptomId,
+        });
+      } else if (itemType === "diagnosis") {
+        itemProperties = await DiagnosisProperties.findOne({
+          diagnosisId: item.symptomId,
+        });
+      }
+
+      // Process details if properties were found and details exist
+      if (itemProperties && item.details && item.details.length > 0) {
+        for (const detail of item.details) {
+          // Find the matching detail category in item properties
+          const categoryDetail = itemProperties.details.find(
+            (d) => d._id.toString() === detail.detailId.toString()
+          );
+
+          if (!categoryDetail) continue;
+
+          // Create a detail object with category name
+          const detailObj = {
+            categoryId: detail.detailId,
+            categoryName: categoryDetail.categoryName || "",
+            properties: [],
+          };
+
+          // Process each property in the detail
+          if (detail.properties && detail.properties.length > 0) {
+            for (const prop of detail.properties) {
+              // Find the property in item properties to get its name
+              const templateProperty = categoryDetail.categoryProperties.find(
+                (p) => p._id.toString() === prop.propertyId.toString()
+              );
+
+              if (!templateProperty) continue;
+
+              // Add the property with its name and value
+              detailObj.properties.push({
+                propertyId: prop.propertyId,
+                propertyName: templateProperty.propertyName,
+                propertyValue: prop.propertyValue,
+              });
+            }
+          }
+
+          itemObj.details.push(detailObj);
+        }
+      }
+
+      result.symptoms.push(itemObj);
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error fetching data by templateId:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+export const deletePatientSymptoms = async (req, res) => {
+  try {
+    const { symptomId } = req.params;
+
+    if (!symptomId || !mongoose.Types.ObjectId.isValid(symptomId)) {
+      return res.status(400).json({ message: "Valid symptomId is required." });
+    }
+
+    // Check if the symptoms exist for the given appointmentId
+    const symptoms = await PatientSymptoms.find({ symptomId });
+
+    if (symptoms.length === 0) {
+      return res.status(404).json({ message: "No symptoms found." });
+    }
+
+    // Delete all symptoms for the given appointmentId
+    await PatientSymptoms.deleteOne({ symptomId });
+
+    res.status(200).json({
+      success: true,
+      message: "Patient symptoms deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Error deleting patient symptoms:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };

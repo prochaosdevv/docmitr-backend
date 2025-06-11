@@ -6,9 +6,8 @@ const templateListSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    defaultSelection: {
-      type: Boolean,
-      default: false,
+    date: {
+      type: String,
     },
   },
   {
