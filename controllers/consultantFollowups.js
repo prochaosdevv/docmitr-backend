@@ -2783,7 +2783,7 @@ export const getDataByTemplateId = async (req, res) => {
         });
       } else if (itemType === "finding") {
         itemProperties = await FindingsProperties.findOne({
-          findingId: item.symptomId,
+          findingsId: item.symptomId,
         });
       } else if (itemType === "diagnosis") {
         itemProperties = await DiagnosisProperties.findOne({
@@ -2791,42 +2791,60 @@ export const getDataByTemplateId = async (req, res) => {
         });
       }
 
-      // Process details if properties were found and details exist
-      if (itemProperties && item.details && item.details.length > 0) {
+      // Process details if details exist in the item (even if properties weren't found)
+      if (item.details && item.details.length > 0) {
         for (const detail of item.details) {
-          // Find the matching detail category in item properties
-          const categoryDetail = itemProperties.details.find(
-            (d) => d._id.toString() === detail.detailId.toString()
-          );
-
-          if (!categoryDetail) continue;
-
-          // Create a detail object with category name
+          // Create a detail object with category name (default to empty if not found)
           const detailObj = {
             categoryId: detail.detailId,
-            categoryName: categoryDetail.categoryName || "",
+            categoryName: "", // Default value in case we can't find it
             properties: [],
           };
+
+          // Try to find the matching detail category in item properties
+          if (itemProperties && itemProperties.details) {
+            const categoryDetail = itemProperties.details.find(
+              (d) => d._id.toString() === detail.detailId.toString()
+            );
+
+            if (categoryDetail) {
+              detailObj.categoryName = categoryDetail.categoryName || "";
+            }
+          }
 
           // Process each property in the detail
           if (detail.properties && detail.properties.length > 0) {
             for (const prop of detail.properties) {
-              // Find the property in item properties to get its name
-              const templateProperty = categoryDetail.categoryProperties.find(
-                (p) => p._id.toString() === prop.propertyId.toString()
-              );
+              // Try to find property name if possible
+              let propertyName = "";
 
-              if (!templateProperty) continue;
+              if (itemProperties && itemProperties.details) {
+                const categoryDetail = itemProperties.details.find(
+                  (d) => d._id.toString() === detail.detailId.toString()
+                );
+
+                if (categoryDetail && categoryDetail.categoryProperties) {
+                  const templateProperty =
+                    categoryDetail.categoryProperties.find(
+                      (p) => p._id.toString() === prop.propertyId.toString()
+                    );
+
+                  if (templateProperty) {
+                    propertyName = templateProperty.propertyName;
+                  }
+                }
+              }
 
               // Add the property with its name and value
               detailObj.properties.push({
                 propertyId: prop.propertyId,
-                propertyName: templateProperty.propertyName,
+                propertyName: propertyName || `Property ${prop.propertyId}`, // Fallback name
                 propertyValue: prop.propertyValue,
               });
             }
           }
 
+          // Add the detail to the item even if we couldn't find matching properties
           itemObj.details.push(detailObj);
         }
       }
@@ -2834,6 +2852,7 @@ export const getDataByTemplateId = async (req, res) => {
       result.symptoms.push(itemObj);
     }
 
+    // Rest of the function remains the same...
     // Process each medicine item
     for (const item of medicineItems) {
       const medicineId = item.medicineId.toString();
