@@ -14,6 +14,8 @@ const patientSymptomsSchema = new mongoose.Schema({
   note: { type: String, default: null },
   since: { type: String, default: null },
   severity: { type: String, default: null },
+  location: { type: String, default: null },
+  description: { type: String, default: null },
   symptomId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Symptoms",

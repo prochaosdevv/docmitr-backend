@@ -13,6 +13,8 @@ import Composition from "../models/Composition.js";
 import MedicineCategory from "../models/MedicineCategory.js";
 import PatientSymptoms from "../models/PatientSymptoms.js";
 import TemplateList from "../models/TemplateList.js";
+import { PrescriptionItem } from "../models/PatientMedicine.js";
+import PatientInvestigation from "../models/PatientInvestigation.js";
 
 export const createSymptomByAdmin = async (req, res) => {
   try {
@@ -2128,6 +2130,8 @@ export const addOrSaveConsultSymptomsData = async (req, res) => {
       note,
       since,
       severity,
+      location,
+      description,
       details = [],
     } = req.body;
 
@@ -2180,6 +2184,8 @@ export const addOrSaveConsultSymptomsData = async (req, res) => {
       existingRecord.note = note || existingRecord.note;
       existingRecord.since = since || existingRecord.since;
       existingRecord.severity = severity || existingRecord.severity;
+      existingRecord.location = location || existingRecord.location;
+      existingRecord.description = description || existingRecord.description;
 
       if (details && details.length) {
         for (const newDetail of details) {
@@ -2220,6 +2226,8 @@ export const addOrSaveConsultSymptomsData = async (req, res) => {
         note: note || null,
         since: since || null,
         severity: severity || null,
+        location: location || null,
+        description: description || null,
         details,
       });
 
@@ -2240,7 +2248,7 @@ export const addOrSaveConsultSymptomsData = async (req, res) => {
 
 export const saveDataToTemplate = async (req, res) => {
   try {
-    const { appointmentId, patientName, templateId } = req.body;
+    const { appointmentId, patientName, templateId, type } = req.body;
 
     console.log("Request body for saveDataToTemplate:", req.body);
 
@@ -2261,10 +2269,31 @@ export const saveDataToTemplate = async (req, res) => {
         existTemplateId = existingTemplate._id;
         console.log("existTemplateId:", existTemplateId);
 
+        let updateResult;
+
+        // Update all entries with the existing template ID
+        if (type === "medicine") {
+          updateResult = await PrescriptionItem.updateMany(
+            { appointmentId: appointmentId, templateId: null },
+            { $set: { templateId: existTemplateId } }
+          );
+        } else if (type === "symptom") {
+          updateResult = await PatientSymptoms.updateMany(
+            { appointmentId: appointmentId, templateId: null },
+            { $set: { templateId: existTemplateId } }
+          );
+        } else if (type === "investigation") {
+          updateResult = await PatientInvestigation.updateMany(
+            { appointmentId: appointmentId, templateId: null },
+            { $set: { templateId: existTemplateId } }
+          );
+        }
+
         return res.status(200).json({
           success: true,
-          message: "Existing template found",
+          message: "Existing template found and entries updated",
           templateId: existTemplateId,
+          updateCount: updateResult.modifiedCount,
         });
       }
     }
@@ -2278,17 +2307,30 @@ export const saveDataToTemplate = async (req, res) => {
     await newTemplate.save();
     existTemplateId = newTemplate._id;
 
-    console.log("existTemplateId (new):", existTemplateId);
+    let updateResult;
 
-    // Update templateId in PatientSymptoms
-    await PatientSymptoms.updateMany(
-      { appointmentId: appointmentId },
-      { $set: { templateId: existTemplateId } }
-    );
+    if (type === "medicine") {
+      // Update templateId in PatientSymptoms - specifically target null templateIds
+      updateResult = await PrescriptionItem.updateMany(
+        { appointmentId: appointmentId, templateId: null },
+        { $set: { templateId: existTemplateId } }
+      );
+    } else if (type === "symptom") {
+      updateResult = await PatientSymptoms.updateMany(
+        { appointmentId: appointmentId, templateId: null },
+        { $set: { templateId: existTemplateId } }
+      );
+    } else if (type === "investigation") {
+      updateResult = await PatientInvestigation.updateMany(
+        { appointmentId: appointmentId, templateId: null },
+        { $set: { templateId: existTemplateId } }
+      );
+    }
 
     res.status(201).json({
       message: "Data saved to new template successfully",
       templateId: existTemplateId,
+      updateCount: updateResult.modifiedCount,
     });
   } catch (error) {
     console.error("Error saving data to template:", error);
@@ -2315,6 +2357,245 @@ export const getAllSavedTemplates = async (req, res) => {
   }
 };
 
+// export const getDataByTemplateId = async (req, res) => {
+//   try {
+//     const { templateId } = req.params;
+
+//     if (!templateId) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Template ID is required",
+//       });
+//     }
+
+//     // Find all patient items that use this templateId
+//     const patientItems = await PatientSymptoms.find({
+//       templateId: { $eq: templateId },
+//     });
+
+//     // Find all medicine items that use this templateId
+//     const medicineItems = await PrescriptionItem.find({
+//       templateId: { $eq: templateId },
+//     });
+
+//     if (
+//       (!patientItems || patientItems.length === 0) &&
+//       (!medicineItems || medicineItems.length === 0)
+//     ) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "No data found for this template",
+//       });
+//     }
+
+//     // Collect all symptom IDs to fetch their details
+//     const symptomIds = patientItems.map((item) => item.symptomId);
+
+//     // Collect all medicine IDs to fetch their details
+//     const medicineIds = medicineItems.map((item) => item.medicineId);
+
+//     // Fetch all symptoms, findings, diagnosis and medicine data in one go
+//     const allSymptoms = await Symptoms.find({ _id: { $in: symptomIds } });
+//     const allFindings = await Findings.find({ _id: { $in: symptomIds } });
+//     const allDiagnosis = await Diagnosis.find({ _id: { $in: symptomIds } });
+//     const allMedicines = await Medicine.find({ _id: { $in: medicineIds } });
+
+//     // Create lookup maps for quick access
+//     const symptomsMap = {};
+//     allSymptoms.forEach((symptom) => {
+//       symptomsMap[symptom._id.toString()] = {
+//         ...symptom.toObject(),
+//         type: "symptom",
+//       };
+//     });
+
+//     const findingsMap = {};
+//     allFindings.forEach((finding) => {
+//       findingsMap[finding._id.toString()] = {
+//         ...finding.toObject(),
+//         type: "finding",
+//       };
+//     });
+
+//     const diagnosisMap = {};
+//     allDiagnosis.forEach((diagnosis) => {
+//       diagnosisMap[diagnosis._id.toString()] = {
+//         ...diagnosis.toObject(),
+//         type: "diagnosis",
+//       };
+//     });
+
+//     const medicinesMap = {};
+//     allMedicines.forEach((medicine) => {
+//       medicinesMap[medicine._id.toString()] = {
+//         ...medicine.toObject(),
+//       };
+//     });
+
+//     // Create a result object to store the formatted data
+//     const result = {
+//       appointmentId:
+//         patientItems.length > 0
+//           ? patientItems[0].appointmentId
+//           : medicineItems.length > 0
+//           ? medicineItems[0].appointmentId
+//           : null,
+//       templateId,
+//       symptoms: [],
+//       medicines: [],
+//     };
+
+//     // Process each patient item (symptoms, findings, diagnosis)
+//     for (const item of patientItems) {
+//       const symptomId = item.symptomId.toString();
+
+//       // Determine if this is a symptom, finding, or diagnosis
+//       let itemType = "unknown";
+//       let itemData = null;
+
+//       if (symptomsMap[symptomId]) {
+//         itemType = "symptom";
+//         itemData = symptomsMap[symptomId];
+//       } else if (findingsMap[symptomId]) {
+//         itemType = "finding";
+//         itemData = findingsMap[symptomId];
+//       } else if (diagnosisMap[symptomId]) {
+//         itemType = "diagnosis";
+//         itemData = diagnosisMap[symptomId];
+//       }
+
+//       // If we couldn't determine the type, log and skip
+//       if (itemType === "unknown") {
+//         console.log(`Could not find data for item with ID: ${symptomId}`);
+//         continue;
+//       }
+
+//       // Create the basic item object
+//       const itemObj = {
+//         symptomId: item.symptomId,
+//         name: itemData.name, // Include name from the source collection
+//         note: item.note || null,
+//         details: [],
+//         type: itemType,
+//       };
+
+//       // Add type-specific properties
+//       if (itemType === "diagnosis") {
+//         itemObj.location = item.location || null;
+//         itemObj.description = item.description || null;
+//       } else {
+//         // For symptoms and findings
+//         itemObj.since = item.since || null;
+//         itemObj.severity = item.severity || null;
+//       }
+
+//       // Get properties based on the item type
+//       let itemProperties = null;
+//       if (itemType === "symptom") {
+//         itemProperties = await SymptomsProperties.findOne({
+//           symptopId: item.symptomId,
+//         });
+//       } else if (itemType === "finding") {
+//         itemProperties = await FindingsProperties.findOne({
+//           findingId: item.symptomId,
+//         });
+//       } else if (itemType === "diagnosis") {
+//         itemProperties = await DiagnosisProperties.findOne({
+//           diagnosisId: item.symptomId,
+//         });
+//       }
+
+//       // Process details if properties were found and details exist
+//       if (itemProperties && item.details && item.details.length > 0) {
+//         for (const detail of item.details) {
+//           // Find the matching detail category in item properties
+//           const categoryDetail = itemProperties.details.find(
+//             (d) => d._id.toString() === detail.detailId.toString()
+//           );
+
+//           if (!categoryDetail) continue;
+
+//           // Create a detail object with category name
+//           const detailObj = {
+//             categoryId: detail.detailId,
+//             categoryName: categoryDetail.categoryName || "",
+//             properties: [],
+//           };
+
+//           // Process each property in the detail
+//           if (detail.properties && detail.properties.length > 0) {
+//             for (const prop of detail.properties) {
+//               // Find the property in item properties to get its name
+//               const templateProperty = categoryDetail.categoryProperties.find(
+//                 (p) => p._id.toString() === prop.propertyId.toString()
+//               );
+
+//               if (!templateProperty) continue;
+
+//               // Add the property with its name and value
+//               detailObj.properties.push({
+//                 propertyId: prop.propertyId,
+//                 propertyName: templateProperty.propertyName,
+//                 propertyValue: prop.propertyValue,
+//               });
+//             }
+//           }
+
+//           itemObj.details.push(detailObj);
+//         }
+//       }
+
+//       result.symptoms.push(itemObj);
+//     }
+
+//     // Process each medicine item
+//     for (const item of medicineItems) {
+//       const medicineId = item.medicineId.toString();
+//       const medicineData = medicinesMap[medicineId];
+
+//       if (!medicineData) {
+//         console.log(`Could not find data for medicine with ID: ${medicineId}`);
+//         continue;
+//       }
+
+//       // Create the medicine object
+//       const medicineObj = {
+//         medicineId: item.medicineId,
+//         name: medicineData.name || "Unknown Medicine",
+//         compositionName: medicineData.compositionName || "",
+//         doses: [],
+//       };
+
+//       // Process each dose for this medicine
+//       if (item.doses && item.doses.length > 0) {
+//         for (const dose of item.doses) {
+//           const doseObj = {
+//             doseNumber: dose.doseNumber,
+//             quantity: dose.quantity,
+//             dosage: dose.dosage,
+//             timing: dose.timing,
+//             duration: dose.duration,
+//             note: dose.note || "",
+//             prescriptionType: dose.prescriptionType || "",
+//           };
+
+//           medicineObj.doses.push(doseObj);
+//         }
+//       }
+
+//       result.medicines.push(medicineObj);
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       data: result,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching data by templateId:", error);
+//     res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// };
+
 export const getDataByTemplateId = async (req, res) => {
   try {
     const { templateId } = req.params;
@@ -2331,7 +2612,21 @@ export const getDataByTemplateId = async (req, res) => {
       templateId: { $eq: templateId },
     });
 
-    if (!patientItems || patientItems.length === 0) {
+    // Find all medicine items that use this templateId
+    const medicineItems = await PrescriptionItem.find({
+      templateId: { $eq: templateId },
+    });
+
+    // Find patient investigation document that contains investigations, instructions, and procedures
+    const patientInvestigation = await PatientInvestigation.findOne({
+      templateId: { $eq: templateId },
+    });
+
+    if (
+      (!patientItems || patientItems.length === 0) &&
+      (!medicineItems || medicineItems.length === 0) &&
+      !patientInvestigation
+    ) {
       return res.status(404).json({
         success: false,
         message: "No data found for this template",
@@ -2341,10 +2636,33 @@ export const getDataByTemplateId = async (req, res) => {
     // Collect all symptom IDs to fetch their details
     const symptomIds = patientItems.map((item) => item.symptomId);
 
-    // Fetch all symptoms and findings data in one go
+    // Collect all medicine IDs to fetch their details
+    const medicineIds = medicineItems.map((item) => item.medicineId);
+
+    // Collect investigation, instruction, and procedure IDs if they exist
+    const investigationIds = patientInvestigation?.investigations || [];
+    const instructionIds = patientInvestigation?.instructions || [];
+    const procedureIds = patientInvestigation?.procedures || [];
+
+    // Fetch all symptoms, findings, diagnosis and medicine data in one go
     const allSymptoms = await Symptoms.find({ _id: { $in: symptomIds } });
     const allFindings = await Findings.find({ _id: { $in: symptomIds } });
     const allDiagnosis = await Diagnosis.find({ _id: { $in: symptomIds } });
+    const allMedicines = await Medicine.find({ _id: { $in: medicineIds } });
+
+    // Fetch investigations, instructions, and procedures data if IDs exist
+    const allInvestigations =
+      investigationIds.length > 0
+        ? await Investigation.find({ _id: { $in: investigationIds } })
+        : [];
+    const allInstructions =
+      instructionIds.length > 0
+        ? await Instructions.find({ _id: { $in: instructionIds } })
+        : [];
+    const allProcedures =
+      procedureIds.length > 0
+        ? await Procedures.find({ _id: { $in: procedureIds } })
+        : [];
 
     // Create lookup maps for quick access
     const symptomsMap = {};
@@ -2371,14 +2689,49 @@ export const getDataByTemplateId = async (req, res) => {
       };
     });
 
+    const medicinesMap = {};
+    allMedicines.forEach((medicine) => {
+      medicinesMap[medicine._id.toString()] = {
+        ...medicine.toObject(),
+      };
+    });
+
+    // Create lookup maps for investigations, instructions, and procedures
+    const investigationsMap = {};
+    allInvestigations.forEach((investigation) => {
+      investigationsMap[investigation._id.toString()] =
+        investigation.toObject();
+    });
+
+    const instructionsMap = {};
+    allInstructions.forEach((instruction) => {
+      instructionsMap[instruction._id.toString()] = instruction.toObject();
+    });
+
+    const proceduresMap = {};
+    allProcedures.forEach((procedure) => {
+      proceduresMap[procedure._id.toString()] = procedure.toObject();
+    });
+
     // Create a result object to store the formatted data
     const result = {
-      appointmentId: patientItems[0].appointmentId,
+      appointmentId:
+        patientItems.length > 0
+          ? patientItems[0].appointmentId
+          : medicineItems.length > 0
+          ? medicineItems[0].appointmentId
+          : patientInvestigation
+          ? patientInvestigation.appointmentId
+          : null,
       templateId,
       symptoms: [],
+      medicines: [],
+      investigations: [],
+      instructions: [],
+      procedures: [],
     };
 
-    // Process each patient item
+    // Process each patient item (symptoms, findings, diagnosis)
     for (const item of patientItems) {
       const symptomId = item.symptomId.toString();
 
@@ -2481,6 +2834,97 @@ export const getDataByTemplateId = async (req, res) => {
       result.symptoms.push(itemObj);
     }
 
+    // Process each medicine item
+    for (const item of medicineItems) {
+      const medicineId = item.medicineId.toString();
+      const medicineData = medicinesMap[medicineId];
+
+      if (!medicineData) {
+        console.log(`Could not find data for medicine with ID: ${medicineId}`);
+        continue;
+      }
+
+      // Create the medicine object
+      const medicineObj = {
+        medicineId: item.medicineId,
+        name: medicineData.name || "Unknown Medicine",
+        compositionName: medicineData.compositionName || "",
+        doses: [],
+      };
+
+      // Process each dose for this medicine
+      if (item.doses && item.doses.length > 0) {
+        for (const dose of item.doses) {
+          const doseObj = {
+            doseNumber: dose.doseNumber,
+            quantity: dose.quantity,
+            dosage: dose.dosage,
+            timing: dose.timing,
+            duration: dose.duration,
+            note: dose.note || "",
+            prescriptionType: dose.prescriptionType || "",
+          };
+
+          medicineObj.doses.push(doseObj);
+        }
+      }
+
+      result.medicines.push(medicineObj);
+    }
+
+    // Process investigations if they exist
+    if (investigationIds.length > 0) {
+      for (const investigationId of investigationIds) {
+        const id = investigationId.toString();
+        const investigation = investigationsMap[id];
+
+        if (investigation) {
+          result.investigations.push({
+            investigationId,
+            name: investigation.name || "Unknown Investigation",
+            description: investigation.description || "",
+            category: investigation.category || "",
+            // Add any other relevant fields from the investigation document
+          });
+        }
+      }
+    }
+
+    // Process instructions if they exist
+    if (instructionIds.length > 0) {
+      for (const instructionId of instructionIds) {
+        const id = instructionId.toString();
+        const instruction = instructionsMap[id];
+
+        if (instruction) {
+          result.instructions.push({
+            instructionId,
+            name: instruction.name || "Unknown Instruction",
+            description: instruction.description || "",
+            // Add any other relevant fields from the instruction document
+          });
+        }
+      }
+    }
+
+    // Process procedures if they exist
+    if (procedureIds.length > 0) {
+      for (const procedureId of procedureIds) {
+        const id = procedureId.toString();
+        const procedure = proceduresMap[id];
+
+        if (procedure) {
+          result.procedures.push({
+            procedureId,
+            name: procedure.name || "Unknown Procedure",
+            description: procedure.description || "",
+            duration: procedure.duration || "",
+            // Add any other relevant fields from the procedure document
+          });
+        }
+      }
+    }
+
     return res.status(200).json({
       success: true,
       data: result,
@@ -2516,5 +2960,159 @@ export const deletePatientSymptoms = async (req, res) => {
   } catch (error) {
     console.error("Error deleting patient symptoms:", error);
     res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+export const upsertPrescriptionItem = async (req, res) => {
+  try {
+    const { appointmentId, medicineId, doses = [] } = req.body;
+
+    console.log("Request body for upsertPrescriptionItem:", req.body);
+
+    console.log("Appointment ID:", appointmentId);
+    console.log("Medicine ID:", medicineId);
+    console.log("Doses:", doses);
+    console.log("Type of doses:", Array.isArray(doses));
+    console.log("Doses array length:", doses.length);
+
+    if (
+      !appointmentId ||
+      !medicineId ||
+      !Array.isArray(doses) ||
+      doses.length === 0
+    ) {
+      return res.status(400).json({ message: "Missing or invalid fields." });
+    }
+
+    // ✅ Prevent duplicate doseNumber in request
+    const seen = new Set();
+    for (const dose of doses) {
+      if (seen.has(dose.doseNumber)) {
+        return res.status(400).json({
+          message: `Duplicate doseNumber found in request: ${dose.doseNumber}`,
+        });
+      }
+      seen.add(dose.doseNumber);
+    }
+
+    // Find existing prescription
+    const existingItem = await PrescriptionItem.findOne({
+      appointmentId,
+      medicineId,
+    });
+
+    if (existingItem) {
+      for (const newDose of doses) {
+        const index = existingItem.doses.findIndex(
+          (d) => d.doseNumber === newDose.doseNumber
+        );
+
+        if (index !== -1) {
+          // Update existing dose
+          existingItem.doses[index] = {
+            ...existingItem.doses[index],
+            ...newDose,
+          };
+        } else {
+          // Add new dose
+          existingItem.doses.push(newDose);
+        }
+      }
+
+      await existingItem.save();
+      return res.status(200).json({
+        message: "Prescription updated",
+        data: existingItem,
+      });
+    } else {
+      // Create new item with all doses
+      const newItem = await PrescriptionItem.create({
+        appointmentId,
+        templateId: null,
+        medicineId,
+        doses,
+      });
+
+      return res.status(201).json({
+        message: "Prescription created",
+        data: newItem,
+      });
+    }
+  } catch (error) {
+    console.error("Error in upsertPrescriptionItem:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+export const upsertPatientInvestigation = async (req, res) => {
+  try {
+    const {
+      appointmentId,
+      templateId,
+      type, // must be: "investigations" | "instructions" | "procedures"
+      items, // array of ObjectId strings
+    } = req.body;
+
+    if (!appointmentId || !type || !Array.isArray(items)) {
+      return res.status(400).json({
+        message: "appointmentId, type, and items array are required.",
+      });
+    }
+
+    if (!["investigations", "instructions", "procedures"].includes(type)) {
+      return res.status(400).json({ message: "Invalid type provided." });
+    }
+
+    let record = await PatientInvestigation.findOne({ appointmentId });
+
+    // Case 1: Record exists
+    if (record) {
+      let updated = false;
+
+      // Always update the array with the new items
+      record[type] = items;
+      updated = true;
+
+      if (templateId && !record.templateId) {
+        record.templateId = templateId;
+        updated = true;
+      }
+
+      if (updated) {
+        await record.save();
+        return res.status(200).json({
+          message: `Updated ${type} for existing PatientInvestigation.`,
+          data: record,
+        });
+      } else {
+        return res.status(200).json({
+          message: `No update applied.`,
+          data: record,
+        });
+      }
+    }
+
+    // Case 2: No record — create new
+    const newRecord = await PatientInvestigation.create({
+      appointmentId,
+      templateId: templateId || null,
+      investigations: type === "investigations" ? items : [],
+      instructions: type === "instructions" ? items : [],
+      procedures: type === "procedures" ? items : [],
+    });
+
+    return res.status(201).json({
+      message: `New PatientInvestigation created with ${type}.`,
+      data: newRecord,
+    });
+  } catch (error) {
+    console.error("Error in upsertPatientInvestigation:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
   }
 };

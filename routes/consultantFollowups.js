@@ -60,6 +60,8 @@ import {
   searchMedicines,
   searchProcedures,
   searchSymptoms,
+  upsertPatientInvestigation,
+  upsertPrescriptionItem,
 } from "../controllers/consultantFollowups.js";
 
 const router = express.Router();
@@ -142,6 +144,8 @@ router.post("/procedures/doctor/create", createProcedureByDoctor);
 router.get("/procedures", getPaginatedProcedures);
 router.get("/procedures/search", searchProcedures);
 
+router.post("/investigations/properties-save", upsertPatientInvestigation);
+
 // medicines
 router.post("/medicines/admin/create", createMedicineByAdmin);
 router.post("/medicines/doctor/create", createMedicineByDoctor);
@@ -149,6 +153,8 @@ router.get("/medicines", getPaginatedMedicines); // Assuming this should be a di
 router.get("/medicines/search", searchMedicines);
 router.get("/medicines/categories/search", allMedicineCategories);
 router.get("/medicines/compositions/search", allMedicineCompositions);
+
+router.post("/medicine/properties-save", upsertPrescriptionItem);
 
 router.post("/templates/appointments/save", saveDataToTemplate);
 router.get("/templates/saved", getAllSavedTemplates);
