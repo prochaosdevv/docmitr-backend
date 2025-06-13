@@ -245,7 +245,6 @@ export const deleteHistoryQuestionByDoctor = async (req, res) => {
 export const getHistoryOptionsByQuestionId = async (req, res) => {
   try {
     const questionId = req.params.questionId;
-    console.log("Fetching options for question ID:", questionId);
     const question = await HistoryQuestions.findById(questionId);
 
     if (!question) {
@@ -254,7 +253,7 @@ export const getHistoryOptionsByQuestionId = async (req, res) => {
 
     const options = await HistoryOption.find({ qId: questionId })
       .populate("doctorId", "name email")
-      .sort({ createdAt: -1 });
+      .populate("qId", "title inputtype type");
 
     return res.status(200).json(options);
   } catch (error) {

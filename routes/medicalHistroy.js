@@ -6,6 +6,8 @@ import {
   deleteHistoryTemplateByDoctor,
   getAllHistoryTemplates,
   getHistoryTemplateById,
+  getMedicalHistory,
+  saveHistoryTemplate,
   updateHistoryTemplateByAdmin,
   updateHistoryTemplateByDoctor,
 } from "../controllers/historyTemplate.js";
@@ -43,5 +45,8 @@ router.get("/questions/sub", getHistorySubQyuestionsOnly);
 // options
 router.post("/options/create", createOptions);
 router.get("/options/:questionId", getHistoryOptionsByQuestionId);
+
+router.post("/template/save", saveHistoryTemplate);
+router.get("/template/get-saved-data", getMedicalHistory);
 
 export const historyTemplatesRoutes = router;

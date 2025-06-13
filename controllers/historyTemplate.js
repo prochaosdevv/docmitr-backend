@@ -1,3 +1,4 @@
+import HistorySave from "../models/HistorySave.js";
 import HistoryTemplates from "../models/HistoryTemplate.js";
 
 export const createHistoryTemplateByAdmin = async (req, res) => {
@@ -163,5 +164,89 @@ export const deleteHistoryTemplateByDoctor = async (req, res) => {
     });
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+};
+
+export const saveHistoryTemplate = async (req, res) => {
+  try {
+    const { templateId, patientId, appointmentId, answers } = req.body;
+
+    // Check if a record already exists
+    let medicalHistory = await HistorySave.findOne({
+      templateId,
+      patientId,
+      appointmentId,
+    });
+
+    if (medicalHistory) {
+      // Update existing record
+      medicalHistory.answers = answers;
+      await medicalHistory.save();
+    } else {
+      // Create new record
+      medicalHistory = new HistorySave({
+        templateId,
+        patientId,
+        appointmentId,
+        doctorId: req.user.id,
+        answers,
+      });
+      await medicalHistory.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Medical history saved successfully",
+      data: medicalHistory,
+    });
+  } catch (error) {
+    console.error("Error saving medical history:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to save medical history",
+      error: error.message,
+    });
+  }
+};
+
+// This is the updated server-side API function
+export const getMedicalHistory = async (req, res) => {
+  try {
+    const { templateId, patientId, appointmentId } = req.query;
+
+    // Validate required parameters
+    if (!templateId || !patientId || !appointmentId) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Missing required query parameters: templateId, patientId, or appointmentId",
+      });
+    }
+
+    const medicalHistory = await HistorySave.findOne({
+      templateId,
+      patientId,
+      appointmentId,
+    });
+
+    if (!medicalHistory) {
+      return res.status(200).json({
+        success: true,
+        data: null,
+      });
+    }
+
+    // Return the found medical history
+    return res.status(200).json({
+      success: true,
+      data: medicalHistory,
+    });
+  } catch (error) {
+    console.error("Error retrieving medical history:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to retrieve medical history",
+      error: error.message,
+    });
   }
 };

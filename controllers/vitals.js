@@ -79,8 +79,6 @@ export const getVitalById = async (req, res) => {
       return res.status(404).json({ error: "Vital not found" });
     }
 
-    console.log(JSON.stringify(vitals, null, 2), "fdfd");
-
     // Transform vitalsData
     const transformedVitals = vitals.map((vital) => ({
       ...vital.toObject(),
