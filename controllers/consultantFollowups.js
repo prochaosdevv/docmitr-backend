@@ -2246,9 +2246,109 @@ export const addOrSaveConsultSymptomsData = async (req, res) => {
   }
 };
 
+// export const saveDataToTemplate = async (req, res) => {
+//   try {
+//     const { appointmentId, patientName, templateId, type } = req.body;
+
+//     console.log("Request body for saveDataToTemplate:", req.body);
+
+//     const createdDate = new Date();
+//     const formattedDate = createdDate.toLocaleDateString("en-US", {
+//       day: "2-digit",
+//       month: "long",
+//       year: "numeric",
+//     });
+
+//     let existTemplateId = null;
+
+//     if (templateId) {
+//       // If templateId is provided, check if it exists
+//       const existingTemplate = await TemplateList.findById(templateId);
+
+//       if (existingTemplate) {
+//         existTemplateId = existingTemplate._id;
+//         console.log("existTemplateId:", existTemplateId);
+
+//         let updateResult;
+
+//         // Update all entries with the existing template ID
+//         if (type === "medicine") {
+//           updateResult = await PrescriptionItem.updateMany(
+//             { appointmentId: appointmentId, templateId: null },
+//             { $set: { templateId: existTemplateId } }
+//           );
+//         } else if (type === "symptom") {
+//           updateResult = await PatientSymptoms.updateMany(
+//             { appointmentId: appointmentId, templateId: null },
+//             { $set: { templateId: existTemplateId } }
+//           );
+//         } else if (type === "investigation") {
+//           updateResult = await PatientInvestigation.updateMany(
+//             { appointmentId: appointmentId, templateId: null },
+//             { $set: { templateId: existTemplateId } }
+//           );
+//         }
+
+//         return res.status(200).json({
+//           success: true,
+//           message: "Existing template found and entries updated",
+//           templateId: existTemplateId,
+//           updateCount: updateResult.modifiedCount,
+//         });
+//       }
+//     }
+
+//     // Create a new template if templateId is not provided or not found
+//     const newTemplate = new TemplateList({
+//       name: patientName || "Untitled Template",
+//       date: formattedDate,
+//     });
+
+//     await newTemplate.save();
+//     existTemplateId = newTemplate._id;
+
+//     let updateResult;
+
+//     if (type === "medicine") {
+//       // Update templateId in PatientSymptoms - specifically target null templateIds
+//       updateResult = await PrescriptionItem.updateMany(
+//         { appointmentId: appointmentId, templateId: null },
+//         { $set: { templateId: existTemplateId } }
+//       );
+//     } else if (type === "symptom") {
+//       updateResult = await PatientSymptoms.updateMany(
+//         { appointmentId: appointmentId, templateId: null },
+//         { $set: { templateId: existTemplateId } }
+//       );
+//     } else if (type === "investigation") {
+//       updateResult = await PatientInvestigation.updateMany(
+//         { appointmentId: appointmentId, templateId: null },
+//         { $set: { templateId: existTemplateId } }
+//       );
+//     }
+
+//     res.status(201).json({
+//       message: "Data saved to new template successfully",
+//       templateId: existTemplateId,
+//       updateCount: updateResult.modifiedCount,
+//     });
+//   } catch (error) {
+//     console.error("Error saving data to template:", error);
+//     res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// };
+
 export const saveDataToTemplate = async (req, res) => {
   try {
-    const { appointmentId, patientName, templateId, type } = req.body;
+    const {
+      appointmentId,
+      patientName,
+      templateId,
+      // Instead of a single 'type', accept arrays of data for each type
+      symptomData = [], // For symptoms, findings, diagnosis
+      medicineData = [], // For medicines
+      investigationData = [], // For investigations, instructions, procedures
+    } = req.body;
 
     console.log("Request body for saveDataToTemplate:", req.body);
 
@@ -2261,39 +2361,55 @@ export const saveDataToTemplate = async (req, res) => {
 
     let existTemplateId = null;
 
+    // If templateId is provided, check if it exists
     if (templateId) {
-      // If templateId is provided, check if it exists
       const existingTemplate = await TemplateList.findById(templateId);
 
       if (existingTemplate) {
         existTemplateId = existingTemplate._id;
         console.log("existTemplateId:", existTemplateId);
 
-        let updateResult;
-
         // Update all entries with the existing template ID
-        if (type === "medicine") {
-          updateResult = await PrescriptionItem.updateMany(
-            { appointmentId: appointmentId, templateId: null },
-            { $set: { templateId: existTemplateId } }
-          );
-        } else if (type === "symptom") {
-          updateResult = await PatientSymptoms.updateMany(
-            { appointmentId: appointmentId, templateId: null },
-            { $set: { templateId: existTemplateId } }
-          );
-        } else if (type === "investigation") {
-          updateResult = await PatientInvestigation.updateMany(
-            { appointmentId: appointmentId, templateId: null },
-            { $set: { templateId: existTemplateId } }
+        const updatePromises = [];
+
+        // Update symptoms, findings, diagnosis if data is provided
+        if (symptomData.length > 0) {
+          updatePromises.push(
+            PatientSymptoms.updateMany(
+              { appointmentId: appointmentId, templateId: null },
+              { $set: { templateId: existTemplateId } }
+            )
           );
         }
+
+        // Update medicines if data is provided
+        if (medicineData.length > 0) {
+          updatePromises.push(
+            PrescriptionItem.updateMany(
+              { appointmentId: appointmentId, templateId: null },
+              { $set: { templateId: existTemplateId } }
+            )
+          );
+        }
+
+        // Update investigations, instructions, procedures if data is provided
+        if (investigationData.length > 0) {
+          updatePromises.push(
+            PatientInvestigation.updateMany(
+              { appointmentId: appointmentId, templateId: null },
+              { $set: { templateId: existTemplateId } }
+            )
+          );
+        }
+
+        // Wait for all updates to complete
+        const updateResults = await Promise.all(updatePromises);
 
         return res.status(200).json({
           success: true,
           message: "Existing template found and entries updated",
           templateId: existTemplateId,
-          updateCount: updateResult.modifiedCount,
+          updateResults,
         });
       }
     }
@@ -2307,30 +2423,46 @@ export const saveDataToTemplate = async (req, res) => {
     await newTemplate.save();
     existTemplateId = newTemplate._id;
 
-    let updateResult;
+    // Update all relevant collections with the new template ID
+    const updatePromises = [];
 
-    if (type === "medicine") {
-      // Update templateId in PatientSymptoms - specifically target null templateIds
-      updateResult = await PrescriptionItem.updateMany(
-        { appointmentId: appointmentId, templateId: null },
-        { $set: { templateId: existTemplateId } }
-      );
-    } else if (type === "symptom") {
-      updateResult = await PatientSymptoms.updateMany(
-        { appointmentId: appointmentId, templateId: null },
-        { $set: { templateId: existTemplateId } }
-      );
-    } else if (type === "investigation") {
-      updateResult = await PatientInvestigation.updateMany(
-        { appointmentId: appointmentId, templateId: null },
-        { $set: { templateId: existTemplateId } }
+    // Update symptoms, findings, diagnosis if data is provided
+    if (symptomData.length > 0) {
+      updatePromises.push(
+        PatientSymptoms.updateMany(
+          { appointmentId: appointmentId, templateId: null },
+          { $set: { templateId: existTemplateId } }
+        )
       );
     }
+
+    // Update medicines if data is provided
+    if (medicineData.length > 0) {
+      updatePromises.push(
+        PrescriptionItem.updateMany(
+          { appointmentId: appointmentId, templateId: null },
+          { $set: { templateId: existTemplateId } }
+        )
+      );
+    }
+
+    // Update investigations, instructions, procedures if data is provided
+    if (investigationData.length > 0) {
+      updatePromises.push(
+        PatientInvestigation.updateMany(
+          { appointmentId: appointmentId, templateId: null },
+          { $set: { templateId: existTemplateId } }
+        )
+      );
+    }
+
+    // Wait for all updates to complete
+    const updateResults = await Promise.all(updatePromises);
 
     res.status(201).json({
       message: "Data saved to new template successfully",
       templateId: existTemplateId,
-      updateCount: updateResult.modifiedCount,
+      updateResults,
     });
   } catch (error) {
     console.error("Error saving data to template:", error);
