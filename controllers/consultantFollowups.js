@@ -2177,6 +2177,7 @@ export const addOrSaveConsultSymptomsData = async (req, res) => {
     const existingRecord = await PatientSymptoms.findOne({
       appointmentId: appointmentId,
       symptomId: symptomId, // Note the schema field name
+      templateId: templateId || null, // Allow null templateId
     });
 
     if (existingRecord) {
@@ -3116,15 +3117,7 @@ export const deletePatientSymptoms = async (req, res) => {
 
 export const upsertPrescriptionItem = async (req, res) => {
   try {
-    const { appointmentId, medicineId, doses = [] } = req.body;
-
-    console.log("Request body for upsertPrescriptionItem:", req.body);
-
-    console.log("Appointment ID:", appointmentId);
-    console.log("Medicine ID:", medicineId);
-    console.log("Doses:", doses);
-    console.log("Type of doses:", Array.isArray(doses));
-    console.log("Doses array length:", doses.length);
+    const { appointmentId, medicineId, doses = [], templateId } = req.body;
 
     if (
       !appointmentId ||
@@ -3150,9 +3143,12 @@ export const upsertPrescriptionItem = async (req, res) => {
     const existingItem = await PrescriptionItem.findOne({
       appointmentId,
       medicineId,
+      templateId: templateId || null,
     });
 
     if (existingItem) {
+      existingItem.templateId = templateId || existingItem.templateId;
+
       for (const newDose of doses) {
         const index = existingItem.doses.findIndex(
           (d) => d.doseNumber === newDose.doseNumber
@@ -3217,7 +3213,10 @@ export const upsertPatientInvestigation = async (req, res) => {
       return res.status(400).json({ message: "Invalid type provided." });
     }
 
-    let record = await PatientInvestigation.findOne({ appointmentId });
+    let record = await PatientInvestigation.findOne({
+      appointmentId,
+      templateId,
+    });
 
     // Case 1: Record exists
     if (record) {
