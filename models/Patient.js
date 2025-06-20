@@ -24,6 +24,11 @@ const patientSchema = new mongoose.Schema(
       default: "",
     },
 
+    flag: {
+      type: String,
+      default: "",
+    },
+
     caretakerName: {
       type: String,
       default: null,

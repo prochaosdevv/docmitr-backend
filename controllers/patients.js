@@ -37,9 +37,9 @@ export const getPatientsByQuery = async (req, res) => {
   }
 };
 
-export const getPatientById = (req, res) => {
+export const getPatientById = async (req, res) => {
   try {
-    const patient = findById("patients", req.params.id);
+    const patient = await Patient.findOne({ _id: req.params.id });
 
     if (!patient) {
       return res.status(404).json({ message: "Patient not found" });
@@ -96,6 +96,7 @@ export const createPatient = async (req, res) => {
       clinicSpecificId: req.body.clinicSpecificId || "",
       language: req.body.language || null,
       name: req.body.name,
+      flag: req.body.flag || "",
       email: req.body.email,
       phone: req.body.phone,
       dobYear: req.body.dateOfBirth.split("/")[2] || null,
@@ -146,15 +147,25 @@ export const updatePatient = async (req, res) => {
     const { id } = req.params;
     const {
       uid,
+      thirdPartyUID,
       name,
       gender,
-      dateOfBirth,
-      caretakerName,
+      phone,
       email,
+      caretakerName,
       bloodGroup,
-      mobile,
-      thirdPartyUid,
-      comments,
+      dateOfBirth,
+      adhar,
+      marriedSince,
+      domYear,
+      domMonth,
+      domDate,
+      language,
+      purposeOfVisit,
+      flag,
+      clinicSpecificId,
+      ageMonths,
+      ageYears,
       address,
     } = req.body;
 
@@ -162,12 +173,11 @@ export const updatePatient = async (req, res) => {
       return res.status(400).json({ message: "Patient ID is required" });
     }
 
-    const patient = await Patient.findOne({ patientId: id });
+    const patient = await Patient.findOne({ _id: id });
     if (!patient) {
       return res.status(404).json({ message: "Patient not found" });
     }
 
-    // Prevent duplicate email (if changed and not blank)
     if (email && email !== patient.email) {
       const emailExists = await Patient.findOne({ email });
       if (emailExists) {
@@ -177,18 +187,32 @@ export const updatePatient = async (req, res) => {
       }
     }
 
-    // Map UI fields to schema fields
     const updateFields = {
       patientUID: uid || null,
-      thirdPartyUID: thirdPartyUid || null,
+      thirdPartyUID: thirdPartyUID || null,
       name,
       gender,
+      phone,
       email: email || "",
       caretakerName: caretakerName || null,
       bloodGroup: bloodGroup || "",
-      phone: mobile,
+      ageMonths: ageMonths || "",
+      ageYears: ageYears || "",
+      marriedSince: marriedSince || null,
+      domYear: domYear || null,
+      domMonth: domMonth || null,
+      domDate: domDate || null,
+      language: language || "English",
+      purposeOfVisit: purposeOfVisit || null,
+      flag: flag || "",
+      clinicSpecificId: clinicSpecificId || "",
+
+      // Optional but validated
+      adhar: adhar && /^\d{12}$/.test(adhar) ? adhar : null,
+
+      // Address block
       address1: address?.addressLine1 || "",
-      address2: address?.addressLine2 || "",
+      address2: address?.addressLine2 || null,
       area: address?.area || "",
       pincode: address?.pincode || "",
       city: address?.city || "",
@@ -197,23 +221,23 @@ export const updatePatient = async (req, res) => {
       country: address?.country || "India",
     };
 
-    // If dateOfBirth provided, split into year, month, date
+    // Split DOB if provided
     if (dateOfBirth) {
       const dob = new Date(dateOfBirth);
       updateFields.dobYear = dob.getFullYear().toString();
-      updateFields.dobMonth = dob.getMonth().toString(); // 0-indexed
+      updateFields.dobMonth = (dob.getMonth() + 1).toString(); // fix: +1 to match actual month
       updateFields.dobDate = dob.getDate().toString();
     }
 
     const updatedPatient = await Patient.findOneAndUpdate(
-      { patientId: id },
+      { _id: id },
       { $set: updateFields },
       { new: true, runValidators: true }
     );
 
     return res.status(200).json({
       message: "Patient updated successfully",
-      data: updatedPatient,
+      // data: updatedPatient,
     });
   } catch (error) {
     console.error("Update patient error:", error);

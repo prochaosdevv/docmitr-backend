@@ -65,6 +65,7 @@ export const createAppointment = async (req, res) => {
         clinicSpecificId: req.body.clinicSpecificId || "",
         language: req.body.language || null,
         name: req.body.patientName,
+        flag: req.body.flag || "",
         email: req.body.email,
         phone: req.body.mobileNumber,
         dobYear: req.body.dateOfBirth.split("/")[2] || null,
@@ -250,6 +251,7 @@ export const getAppointmentDetails = async (req, res) => {
           ageMonths: patient.ageMonths,
           phone: patient.phone,
           gender: patient.gender,
+          flag: patient.flag,
         },
       },
     });
