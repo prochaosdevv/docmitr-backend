@@ -124,7 +124,6 @@ const patientSchema = new mongoose.Schema(
 
     address1: {
       type: String,
-      required: true,
     },
 
     address2: {
@@ -134,33 +133,27 @@ const patientSchema = new mongoose.Schema(
 
     area: {
       type: String,
-      required: true,
     },
 
     pincode: {
       type: String,
-      required: true,
       match: /^\d{6}$/,
     },
 
     country: {
       type: String,
-      required: true,
     },
 
     state: {
       type: String,
-      required: true,
     },
 
     city: {
       type: String,
-      required: true,
     },
 
     district: {
       type: String,
-      required: true,
     },
   },
   {

@@ -15,6 +15,8 @@ import PatientSymptoms from "../models/PatientSymptoms.js";
 import TemplateList from "../models/TemplateList.js";
 import { PrescriptionItem } from "../models/PatientMedicine.js";
 import PatientInvestigation from "../models/PatientInvestigation.js";
+import DosageCalculatorSchema from "../models/DosageCalculatorSchema.js";
+import Report from "../models/Reports.js";
 
 export const createSymptomByAdmin = async (req, res) => {
   try {
@@ -3264,5 +3266,139 @@ export const upsertPatientInvestigation = async (req, res) => {
       message: "Server error",
       error: error.message,
     });
+  }
+};
+
+export const addOrUpdateDosageCalculator = async (req, res) => {
+  try {
+    const {
+      selectedQuantity,
+      factor,
+      strength,
+      maxValue,
+      multiplier,
+      maxDosage,
+      medicineId,
+      appointmentId,
+    } = req.body;
+
+    const doctorId = req.user.id; // Assuming the user is a doctor and their ID is in req.user
+
+    if (!selectedQuantity || !medicineId || !appointmentId) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+      });
+    }
+
+    const query = {
+      doctorId,
+      medicineId,
+      appointmentId,
+    };
+
+    const updateData = {
+      selectedQuantity,
+      factor,
+      strength,
+      maxValue,
+      multiplier,
+      maxDosage,
+    };
+
+    const options = {
+      new: true,
+      upsert: true, // Create if not exists
+      setDefaultsOnInsert: true,
+    };
+
+    const dosage = await DosageCalculatorSchema.findOneAndUpdate(
+      query,
+      updateData,
+      options
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Dosage calculator data saved successfully",
+      data: dosage,
+    });
+  } catch (error) {
+    console.error("Error saving dosage calculator:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while saving dosage calculator",
+    });
+  }
+};
+
+export const getDosageCalculatorData = async (req, res) => {
+  try {
+    const { medicineId, appointmentId } = req.query;
+
+    if (!medicineId || !appointmentId) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+      });
+    }
+
+    const doctorId = req.user.id; // Assuming the user is a doctor and their ID is in req.user
+
+    const dosage = await DosageCalculatorSchema.findOne({
+      doctorId,
+      medicineId,
+      appointmentId,
+    });
+
+    if (!dosage) {
+      return res.status(200).json({
+        success: false,
+        message: "Dosage calculator data not found",
+        data: null,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: dosage,
+    });
+  } catch (error) {
+    console.error("Error fetching dosage calculator data:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching dosage calculator data",
+    });
+  }
+};
+
+export const createReport = async (req, res) => {
+  try {
+    const { issue, item, itemId } = req.body;
+    const doctorId = req.user.id; // Assuming the user is a doctor and their ID is in req.user
+
+    if (!issue || !item || !itemId) {
+      return res.status(400).json({
+        message: "Issue, item, and itemId are required.",
+      });
+    }
+
+    const report = new Report({
+      issue,
+      item,
+      itemId,
+      doctorId,
+    });
+
+    await report.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Report created successfully",
+      data: report,
+    });
+  } catch (error) {
+    console.log("Error creating report:", error);
+    res.status(500).json({ message: error.message });
   }
 };

@@ -218,7 +218,7 @@ export const updatePatient = async (req, res) => {
       city: address?.city || "",
       district: address?.district || "",
       state: address?.state || "",
-      country: address?.country || "India",
+      country: address?.country || "",
     };
 
     // Split DOB if provided

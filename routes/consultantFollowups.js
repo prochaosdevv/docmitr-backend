@@ -4,6 +4,7 @@ import {
   addOnFindingsProperties,
   addOnSymptomProperties,
   addOrSaveConsultSymptomsData,
+  addOrUpdateDosageCalculator,
   allMedicineCategories,
   allMedicineCompositions,
   createDiagnosisByAdmin,
@@ -23,6 +24,7 @@ import {
   createMedicineByDoctor,
   createProcedureByAdmin,
   createProcedureByDoctor,
+  createReport,
   createSymptomByAdmin,
   createSymptomByDoctor,
   createSymptomPropertyByAdmin,
@@ -44,6 +46,7 @@ import {
   getAllSymptoms,
   getDataByTemplateId,
   getDiagnosisProperties,
+  getDosageCalculatorData,
   getFindingsProperties,
   getInvestigationPanels,
   getInvestigationsByIds,
@@ -160,5 +163,13 @@ router.post("/templates/appointments/save", saveDataToTemplate);
 router.get("/templates/saved", getAllSavedTemplates);
 router.get("/templates/data/:templateId", getDataByTemplateId);
 router.delete("/templates/data/delete/:symptomId", deletePatientSymptoms);
+
+// dosage calculator
+
+router.post("/dosage/calculator", addOrUpdateDosageCalculator);
+router.get("/dosage/calculator", getDosageCalculatorData);
+
+// reports
+router.post("/report", createReport);
 
 export const consultantFollowups = router;
