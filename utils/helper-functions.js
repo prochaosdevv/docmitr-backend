@@ -91,3 +91,16 @@ export function generateSlotsForDay(schedule, sessionKey, slotDuration) {
 
   return slots;
 }
+
+export const isAddressComplete = (address) => {
+  return (
+    address &&
+    address.addressLine1 &&
+    address.city &&
+    address.state &&
+    address.district &&
+    address.country &&
+    address.pincode &&
+    address.area
+  );
+};

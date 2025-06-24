@@ -4,6 +4,7 @@ import Clinic from "../models/Clinic.js";
 import Doctor from "../models/Doctor.js";
 import Patient from "../models/Patient.js";
 import PatientAddressHistory from "../models/PatientAddressHistory.js";
+import { isAddressComplete } from "../utils/helper-functions.js";
 
 export const getAppointments = async (req, res) => {
   try {
@@ -101,17 +102,19 @@ export const createAppointment = async (req, res) => {
 
       await newPatient.save();
 
-      await PatientAddressHistory.create({
-        patientId: newPatient._id,
-        address1: newPatient.address1,
-        address2: newPatient.address2 || "",
-        area: newPatient.area || "",
-        pincode: newPatient.pincode || "",
-        city: newPatient.city || "",
-        district: newPatient.district || "",
-        state: newPatient.state || "",
-        country: newPatient.country || "India",
-      });
+      if (isAddressComplete(req.body.address)) {
+        await PatientAddressHistory.create({
+          patientId: newPatient._id,
+          address1: newPatient.address1,
+          address2: newPatient.address2 || "",
+          area: newPatient.area || "",
+          pincode: newPatient.pincode || "",
+          city: newPatient.city || "",
+          district: newPatient.district || "",
+          state: newPatient.state || "",
+          country: newPatient.country || "India",
+        });
+      }
     }
 
     // const existingAppointment = await Appoinment.findOne({
@@ -152,25 +155,26 @@ export const createAppointment = async (req, res) => {
 
     await newAppointment.save();
 
-    await Appoinment.findOneAndUpdate(
-      { patientId: patientId },
-      {
-        $set: {
-          address: {
-            addressLine1: req.body.address?.addressLine1 || "",
-            addressLine2: req.body.address?.addressLine2 || "",
-            city: req.body.address?.city || "",
-            state: req.body.address?.state || "",
-            district: req.body.address?.district || "",
-            country: req.body.address?.country || "India",
-            pincode: req.body.address?.pincode || "",
-            area: req.body.address?.area || "",
+    if (isAddressComplete(req.body.address)) {
+      await Appoinment.findOneAndUpdate(
+        { patientId: patientId },
+        {
+          $set: {
+            address: {
+              addressLine1: req.body.address.addressLine1,
+              addressLine2: req.body.address.addressLine2,
+              city: req.body.address.city,
+              state: req.body.address.state,
+              district: req.body.address.district,
+              country: req.body.address.country,
+              pincode: req.body.address.pincode,
+              area: req.body.address.area,
+            },
           },
         },
-      },
-      { new: true, runValidators: true }
-    );
-
+        { new: true, runValidators: true }
+      );
+    }
     return res.status(201).json({
       message: "Appointment created successfully",
       appointment: newAppointment,

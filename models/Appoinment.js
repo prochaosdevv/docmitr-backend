@@ -49,12 +49,12 @@ const ConsultationFollowUpEntrySchema = new mongoose.Schema(
 // Address schema
 const AddressSchema = new mongoose.Schema(
   {
-    addressLine1: { type: String, required: true },
+    addressLine1: { type: String },
     addressLine2: { type: String },
-    city: { type: String, required: true },
-    state: { type: String, required: true },
+    city: { type: String },
+    state: { type: String },
     district: { type: String },
-    country: { type: String, required: true },
+    country: { type: String },
     pincode: { type: String },
     area: { type: String },
   },
@@ -110,7 +110,7 @@ const appointmentSchema = new mongoose.Schema(
     purposeOfVisit: { type: String },
     timeSlot: { type: TimeSlotSchema, required: true },
     roomNo: { type: String },
-    address: { type: AddressSchema, required: true },
+    address: { type: AddressSchema },
 
     consultationFollowUpOption: [ConsultationFollowUpEntrySchema],
   },

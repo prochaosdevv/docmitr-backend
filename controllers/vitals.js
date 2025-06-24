@@ -130,7 +130,8 @@ export const deleteVital = async (req, res) => {
 
 export const getAllMasterVitals = async (req, res) => {
   try {
-    const vitals = await VitalMaster.find();
+    const vitals = await VitalMaster.find().sort({ sortOrder: 1 }); // Sort by sortOrder ascending
+
     res.json(vitals);
   } catch (error) {
     res.status(500).json({ error: error.message });
