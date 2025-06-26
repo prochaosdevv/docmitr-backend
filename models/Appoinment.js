@@ -113,6 +113,9 @@ const appointmentSchema = new mongoose.Schema(
     address: { type: AddressSchema },
 
     consultationFollowUpOption: [ConsultationFollowUpEntrySchema],
+
+    checkInTime: { type: String, default: null },
+    checkOutTime: { type: String, default: null },
   },
   { timestamps: true }
 );

@@ -264,3 +264,39 @@ export const getAppointmentDetails = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+export const updateCheckInCheckOut = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const { checkInTime, checkOutTime } = req.body;
+
+    if (!checkInTime && !checkOutTime) {
+      return res.status(400).json({
+        message: "Please provide checkInTime or checkOutTime",
+      });
+    }
+
+    const updatedAppointment = await Appoinment.findOneAndUpdate(
+      { appointmentId: appointmentId },
+      {
+        ...(checkInTime && { checkInTime }),
+        ...(checkOutTime && { checkOutTime }),
+      },
+      { new: true }
+    );
+
+    if (!updatedAppointment) {
+      return res
+        .status(404)
+        .json({ message: "Appointment not found with this appointmentId" });
+    }
+
+    return res.status(200).json({
+      message: "Check-in/check-out updated successfully",
+      data: updatedAppointment,
+    });
+  } catch (error) {
+    console.error("Error updating appointment:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};

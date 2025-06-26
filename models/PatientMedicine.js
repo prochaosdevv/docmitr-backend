@@ -8,17 +8,7 @@ const quantitySchema = new mongoose.Schema(
     },
     unit: {
       type: String,
-      enum: [
-        "tablets",
-        "capsules",
-        "ml",
-        "g",
-        "drops",
-        "puffs",
-        "sachets",
-        "other",
-      ],
-      required: true,
+      default: "tablets",
     },
   },
   { _id: false }
@@ -55,7 +45,7 @@ const durationSchema = new mongoose.Schema(
   {
     value: {
       type: String,
-      required: true,
+      default: "",
     },
     type: {
       type: String,
@@ -74,19 +64,19 @@ const doseSchema = new mongoose.Schema(
     },
     quantity: {
       type: quantitySchema,
-      required: true,
+      default: {
+        value: 1,
+        unit: "tablets",
+      },
     },
     dosage: {
       type: String,
-      required: true,
     },
     timing: {
       type: timingSchema,
-      required: true,
     },
     duration: {
       type: durationSchema,
-      required: true,
     },
     note: {
       type: String,
@@ -116,6 +106,15 @@ const prescriptionItemSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Medicine",
     required: true,
+  },
+  doctorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Doctor",
+    default: null,
+  },
+  isStarred: {
+    type: Boolean,
+    default: false,
   },
   doses: [doseSchema],
 });

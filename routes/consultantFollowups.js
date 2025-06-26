@@ -5,6 +5,7 @@ import {
   addOnSymptomProperties,
   addOrSaveConsultSymptomsData,
   addOrUpdateDosageCalculator,
+  addOrUpdateMedicineData,
   allMedicineCategories,
   allMedicineCompositions,
   createDiagnosisByAdmin,
@@ -50,11 +51,13 @@ import {
   getFindingsProperties,
   getInvestigationPanels,
   getInvestigationsByIds,
+  getMedicineData,
   getPaginatedInstructions,
   getPaginatedInvestigations,
   getPaginatedMedicines,
   getPaginatedProcedures,
   getSymptomProperties,
+  removeMedicineData,
   saveDataToTemplate,
   searchDiagnosis,
   searchFindings,
@@ -158,6 +161,9 @@ router.get("/medicines/categories/search", allMedicineCategories);
 router.get("/medicines/compositions/search", allMedicineCompositions);
 
 router.post("/medicine/properties-save", upsertPrescriptionItem);
+router.post("/medicine/properties-save/data", addOrUpdateMedicineData);
+router.get("/medicine/properties-save/:medicineId", getMedicineData);
+router.delete("/medicine/properties-save/:medicineId", removeMedicineData);
 
 router.post("/templates/appointments/save", saveDataToTemplate);
 router.get("/templates/saved", getAllSavedTemplates);
