@@ -4,7 +4,10 @@ import Clinic from "../models/Clinic.js";
 import Doctor from "../models/Doctor.js";
 import Patient from "../models/Patient.js";
 import PatientAddressHistory from "../models/PatientAddressHistory.js";
-import { isAddressComplete } from "../utils/helper-functions.js";
+import {
+  isAddressComplete,
+  parseDateTimeString,
+} from "../utils/helper-functions.js";
 
 export const getAppointments = async (req, res) => {
   try {
@@ -297,6 +300,58 @@ export const updateCheckInCheckOut = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating appointment:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+export const getAppointmentStatsTest = async (req, res) => {
+  try {
+    const { date } = req.query; // e.g., "27 June 2025"
+
+    if (!date) {
+      return res.status(400).json({ message: "Date is required" });
+    }
+
+    const appointments = await Appoinment.find({ appointmentDate: date });
+
+    const totalAppointments = appointments.length;
+
+    let waitingCount = 0;
+    let totalWaitingTimeInMinutes = 0;
+    let completedAppointments = 0;
+
+    appointments.forEach((appointment) => {
+      const { checkInTime, checkOutTime } = appointment;
+
+      if (checkInTime && !checkOutTime) {
+        waitingCount += 1;
+      }
+
+      if (checkInTime && checkOutTime) {
+        const checkIn = parseDateTimeString(checkInTime);
+        const checkOut = parseDateTimeString(checkOutTime);
+
+        const diffMs = checkOut - checkIn;
+        const diffMinutes = Math.floor(diffMs / 60000);
+
+        totalWaitingTimeInMinutes += diffMinutes;
+        completedAppointments += 1;
+      }
+    });
+
+    const avgWaitingTime =
+      completedAppointments > 0
+        ? Math.round(totalWaitingTimeInMinutes / completedAppointments)
+        : 0;
+
+    return res.status(200).json({
+      date,
+      totalAppointments,
+      waitingCount,
+      avgWaitingTimeInMinutes: avgWaitingTime,
+    });
+  } catch (error) {
+    console.error("Error fetching appointment stats:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };

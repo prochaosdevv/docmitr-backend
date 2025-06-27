@@ -56,6 +56,7 @@ import {
   getPaginatedInvestigations,
   getPaginatedMedicines,
   getPaginatedProcedures,
+  getPastPatientSymptomsFindingsDiagnosis,
   getSymptomProperties,
   removeMedicineData,
   saveDataToTemplate,
@@ -125,6 +126,12 @@ router.delete("/diagnosis-properties/delete", deleteDiagnosisCategory);
 router.put("/diagnosis-properties/edit", editDiagnosisProperty);
 router.get("/diagnosis/search", searchDiagnosis);
 router.delete("/diagnosis/delete/:diagnosisId", deleteDiagnosis);
+
+// past
+router.get(
+  "/past/symptoms/:appointmentId",
+  getPastPatientSymptomsFindingsDiagnosis
+);
 
 // investigations
 

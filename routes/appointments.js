@@ -8,6 +8,7 @@ import {
   getAppointmentByIds,
   getAppointmentDetails,
   updateCheckInCheckOut,
+  getAppointmentStatsTest,
 } from "../controllers/appointments.js";
 
 const router = express.Router();
@@ -19,5 +20,6 @@ router.delete("/:id", deleteAppointment);
 router.get("/all/:clinicId", getAppointmentByIds);
 router.get("/:appointmentId", getAppointmentDetails);
 router.put("/:appointmentId/check-in-check-out", updateCheckInCheckOut);
+router.get("/stats/test", getAppointmentStatsTest);
 
 export const appointmentRoutes = router;

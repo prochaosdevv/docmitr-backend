@@ -104,3 +104,7 @@ export const isAddressComplete = (address) => {
     address.area
   );
 };
+
+export const parseDateTimeString = (dateTimeStr) => {
+  return new Date(dateTimeStr);
+};

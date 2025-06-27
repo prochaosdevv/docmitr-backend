@@ -17,6 +17,7 @@ import { PrescriptionItem } from "../models/PatientMedicine.js";
 import PatientInvestigation from "../models/PatientInvestigation.js";
 import DosageCalculatorSchema from "../models/DosageCalculatorSchema.js";
 import Report from "../models/Reports.js";
+import Appoinment from "../models/Appoinment.js";
 
 export const createSymptomByAdmin = async (req, res) => {
   try {
@@ -3085,6 +3086,152 @@ export const getDataByTemplateId = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching data by templateId:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+export const getPastPatientSymptomsFindingsDiagnosis = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+
+    if (!appointmentId || !mongoose.Types.ObjectId.isValid(appointmentId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid appointmentId is required.",
+      });
+    }
+
+    // Fetch appointment to get patientId
+    const appointment = await Appoinment.findById(appointmentId);
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found." });
+    }
+
+    const patientId = appointment.patientId;
+
+    // Fetch all appointments for the patient (including current)
+    const pastAppointments = await Appoinment.find({
+      patientId: patientId,
+    }).sort({ createdAt: -1 });
+
+    if (!pastAppointments || pastAppointments.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No past appointments found for this patient.",
+        data: {
+          symptoms: [],
+          findings: [],
+          diagnosis: [],
+        },
+        pastDates: [],
+      });
+    }
+
+    const pastAppointmentIds = pastAppointments.map((appt) => appt._id);
+    const pastDates = pastAppointments.map((appt) => appt.appointmentDate);
+
+    // Create a map of appointmentId to appointmentDate
+    const appointmentIdToDate = {};
+    pastAppointments.forEach((appt) => {
+      appointmentIdToDate[appt._id.toString()] = appt.appointmentDate;
+    });
+
+    // Fetch patient items from PatientSymptoms model
+    const patientItems = await PatientSymptoms.find({
+      appointmentId: { $in: pastAppointmentIds },
+    });
+
+    const symptomIds = patientItems.map((item) => item.symptomId);
+
+    // Fetch from master collections
+    const [allSymptoms, allFindings, allDiagnosis] = await Promise.all([
+      Symptoms.find({ _id: { $in: symptomIds } }),
+      Findings.find({ _id: { $in: symptomIds } }),
+      Diagnosis.find({ _id: { $in: symptomIds } }),
+    ]);
+
+    // Create lookup maps
+    const symptomsMap = Object.fromEntries(
+      allSymptoms.map((s) => [
+        s._id.toString(),
+        { ...s.toObject(), type: "symptom" },
+      ])
+    );
+    const findingsMap = Object.fromEntries(
+      allFindings.map((f) => [
+        f._id.toString(),
+        { ...f.toObject(), type: "finding" },
+      ])
+    );
+    const diagnosisMap = Object.fromEntries(
+      allDiagnosis.map((d) => [
+        d._id.toString(),
+        { ...d.toObject(), type: "diagnosis" },
+      ])
+    );
+
+    const symptoms = [];
+    const findings = [];
+    const diagnosis = [];
+
+    // Process each patient item
+    for (const item of patientItems) {
+      const symptomIdStr = item.symptomId.toString();
+      const appointmentDate =
+        appointmentIdToDate[item.appointmentId.toString()] || null;
+
+      let category = null;
+      if (symptomsMap[symptomIdStr]) {
+        category = { ...symptomsMap[symptomIdStr], type: "symptom" };
+      } else if (findingsMap[symptomIdStr]) {
+        category = { ...findingsMap[symptomIdStr], type: "finding" };
+      } else if (diagnosisMap[symptomIdStr]) {
+        category = { ...diagnosisMap[symptomIdStr], type: "diagnosis" };
+      }
+
+      if (!category) {
+        console.log(
+          `Item with symptomId ${symptomIdStr} not found in any master collection`
+        );
+        continue;
+      }
+
+      const itemObj = {
+        symptomId: item.symptomId,
+        name: category.name,
+        note: item.note || null,
+        since: item.since || null,
+        severity: item.severity || null,
+        location: item.location || null,
+        description: item.description || null,
+        details: item.details || [],
+        type: category.type,
+        date: appointmentDate, // 👉 Date linked here
+      };
+
+      // Push to the correct array
+      if (category.type === "symptom") {
+        symptoms.push(itemObj);
+      } else if (category.type === "finding") {
+        findings.push(itemObj);
+      } else if (category.type === "diagnosis") {
+        diagnosis.push(itemObj);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Past patient clinical data fetched successfully.",
+      data: {
+        symptoms,
+        findings,
+        diagnosis,
+      },
+      pastDates,
+    });
+  } catch (error) {
+    console.error("Error fetching past patient data:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
