@@ -116,6 +116,11 @@ const appointmentSchema = new mongoose.Schema(
 
     checkInTime: { type: String, default: null },
     checkOutTime: { type: String, default: null },
+
+    procedureDate: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

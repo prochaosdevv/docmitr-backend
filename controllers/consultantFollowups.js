@@ -18,6 +18,7 @@ import PatientInvestigation from "../models/PatientInvestigation.js";
 import DosageCalculatorSchema from "../models/DosageCalculatorSchema.js";
 import Report from "../models/Reports.js";
 import Appoinment from "../models/Appoinment.js";
+import ProcedureLocation from "../models/ProcedureLocation.js";
 
 export const createSymptomByAdmin = async (req, res) => {
   try {
@@ -3699,5 +3700,79 @@ export const removeMedicineData = async (req, res) => {
   } catch (error) {
     console.log("Error removing medicine data:", error);
     res.status(500).json({ message: error.message });
+  }
+};
+
+export const getProcedureLocations = async (req, res) => {
+  const { appointmentId } = req.params;
+  console.log("Fetching procedure locations for appointmentId:", appointmentId);
+  try {
+    const procedureLocations = await ProcedureLocation.findOne({
+      appointmentId,
+    });
+    if (!procedureLocations) {
+      return res.status(404).json({ message: "Procedure locations not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: procedureLocations,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const createOrUpdateProcedureLocation = async (req, res) => {
+  const { name, email, mobile, address, appointmentId } = req.body;
+
+  if (!name || !mobile || !address || !appointmentId) {
+    return res.status(400).json({
+      message: "Name, mobile, address, and appointmentId are required",
+    });
+  }
+
+  try {
+    // Check if a record already exists for this appointmentId
+    const existingProcedureLocation = await ProcedureLocation.findOne({
+      appointmentId,
+    });
+
+    if (existingProcedureLocation) {
+      // Update existing record
+      existingProcedureLocation.name = name;
+      existingProcedureLocation.email = email;
+      existingProcedureLocation.mobile = mobile;
+      existingProcedureLocation.address = address;
+
+      const updatedProcedureLocation = await existingProcedureLocation.save();
+
+      return res.status(200).json({
+        message: "Procedure location updated successfully",
+        data: updatedProcedureLocation,
+        isUpdate: true,
+      });
+    } else {
+      // Create new record
+      const newProcedureLocation = new ProcedureLocation({
+        appointmentId,
+        name,
+        email,
+        mobile,
+        address,
+      });
+
+      const savedProcedureLocation = await newProcedureLocation.save();
+
+      return res.status(201).json({
+        message: "Procedure location created successfully",
+        data: savedProcedureLocation,
+        isUpdate: false,
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };

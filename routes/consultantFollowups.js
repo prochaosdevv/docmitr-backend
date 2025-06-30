@@ -23,6 +23,7 @@ import {
   createInvestigationPanel,
   createMedicineByAdmin,
   createMedicineByDoctor,
+  createOrUpdateProcedureLocation,
   createProcedureByAdmin,
   createProcedureByDoctor,
   createReport,
@@ -57,6 +58,7 @@ import {
   getPaginatedMedicines,
   getPaginatedProcedures,
   getPastPatientSymptomsFindingsDiagnosis,
+  getProcedureLocations,
   getSymptomProperties,
   removeMedicineData,
   saveDataToTemplate,
@@ -156,6 +158,9 @@ router.post("/procedures/admin/create", createProcedureByAdmin);
 router.post("/procedures/doctor/create", createProcedureByDoctor);
 router.get("/procedures", getPaginatedProcedures);
 router.get("/procedures/search", searchProcedures);
+
+router.get("/procedures/locations/:appointmentId", getProcedureLocations);
+router.post("/procedures/locations", createOrUpdateProcedureLocation);
 
 router.post("/investigations/properties-save", upsertPatientInvestigation);
 

@@ -355,3 +355,61 @@ export const getAppointmentStatsTest = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+export const updateProcedureDate = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { procedureDate } = req.body;
+
+    // Validate ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Procedure ID",
+      });
+    }
+
+    // Validate Date
+    if (!procedureDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Procedure date is required",
+      });
+    }
+
+    const isoDate = new Date(procedureDate);
+
+    if (isNaN(isoDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid date format",
+      });
+    }
+
+    // Update Procedure Date
+    const updatedProcedure = await Appoinment.findByIdAndUpdate(
+      id,
+      { procedureDate: isoDate },
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedProcedure) {
+      return res.status(404).json({
+        success: false,
+        message: "Appointment not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Appointment procedure date updated successfully",
+      data: updatedProcedure,
+    });
+  } catch (error) {
+    console.error("Error updating procedure date:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};

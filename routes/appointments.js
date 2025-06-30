@@ -9,6 +9,7 @@ import {
   getAppointmentDetails,
   updateCheckInCheckOut,
   getAppointmentStatsTest,
+  updateProcedureDate,
 } from "../controllers/appointments.js";
 
 const router = express.Router();
@@ -21,5 +22,6 @@ router.get("/all/:clinicId", getAppointmentByIds);
 router.get("/:appointmentId", getAppointmentDetails);
 router.put("/:appointmentId/check-in-check-out", updateCheckInCheckOut);
 router.get("/stats/test", getAppointmentStatsTest);
+router.put("/procedure-date/update/:id", updateProcedureDate);
 
 export const appointmentRoutes = router;
