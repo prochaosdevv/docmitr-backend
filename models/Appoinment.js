@@ -121,6 +121,14 @@ const appointmentSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    prescriptionNotes: {
+      type: String,
+      default: null,
+    },
+    doctorNotes: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true }
 );

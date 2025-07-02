@@ -273,18 +273,19 @@ export const updateCheckInCheckOut = async (req, res) => {
     const { appointmentId } = req.params;
     const { checkInTime, checkOutTime } = req.body;
 
-    if (!checkInTime && !checkOutTime) {
+    if (checkInTime === undefined && checkOutTime === undefined) {
       return res.status(400).json({
         message: "Please provide checkInTime or checkOutTime",
       });
     }
 
+    const updateFields = {};
+    if (checkInTime !== undefined) updateFields.checkInTime = checkInTime;
+    if (checkOutTime !== undefined) updateFields.checkOutTime = checkOutTime;
+
     const updatedAppointment = await Appoinment.findOneAndUpdate(
       { appointmentId: appointmentId },
-      {
-        ...(checkInTime && { checkInTime }),
-        ...(checkOutTime && { checkOutTime }),
-      },
+      updateFields,
       { new: true }
     );
 
@@ -407,6 +408,63 @@ export const updateProcedureDate = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating procedure date:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const updateNotes = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { noteType, value } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Appointment ID",
+      });
+    }
+
+    if (!noteType || typeof value !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Note type and value are required",
+      });
+    }
+
+    const validNoteTypes = ["prescriptionNotes", "doctorNotes"];
+
+    if (!validNoteTypes.includes(noteType)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid note type",
+      });
+    }
+
+    const update = { [noteType]: value };
+
+    const updatedAppointment = await Appoinment.findByIdAndUpdate(
+      id,
+      { $set: update },
+      { new: true }
+    );
+
+    if (!updatedAppointment) {
+      return res.status(404).json({
+        success: false,
+        message: "Appointment not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Appointment notes updated successfully",
+      data: updatedAppointment,
+    });
+  } catch (error) {
+    console.error("Error updating appointment notes:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",

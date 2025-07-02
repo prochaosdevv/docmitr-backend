@@ -4,6 +4,7 @@ import Patient from "../models/Patient.js";
 import PatientAddressHistory from "../models/PatientAddressHistory.js";
 
 export const getPatientsByQuery = async (req, res) => {
+  console.log("here2");
   try {
     const { search } = req.query;
 
@@ -357,20 +358,42 @@ export const getPatientVitals = (req, res) => {
 
 export const getPatients = async (req, res) => {
   try {
-    const patients = await Patient.find()
-      .select(
-        "name email phone patientId patientUID caretakerName thirdPartyUID ageMonths ageYears gender clinicSpecificId bloodGroup dobYear dobMonth dobDate address1 address2 area pincode city district state country _id"
-      )
-      .sort({ createdAt: -1 })
-      .limit(10);
+    const { query } = req.query;
 
-    if (!patients) {
+    let patients;
+
+    if (query && query === "byDoctor") {
+      const doctorId = req.user.id;
+
+      if (!doctorId) {
+        return res.status(400).json({ message: "Doctor ID is required" });
+      }
+
+      console.log("Fetching patients for doctor:", doctorId);
+
+      patients = await Patient.find({ doctorId })
+        .select(
+          "name email phone patientId patientUID caretakerName thirdPartyUID ageMonths ageYears gender clinicSpecificId bloodGroup dobYear dobMonth dobDate address1 address2 area pincode city district state country _id"
+        )
+        .sort({ createdAt: -1 })
+        .limit(10);
+    } else {
+      // Fetch all patients if query is not "byDoctor"
+      patients = await Patient.find()
+        .select(
+          "name email phone patientId patientUID caretakerName thirdPartyUID ageMonths ageYears gender clinicSpecificId bloodGroup dobYear dobMonth dobDate address1 address2 area pincode city district state country _id"
+        )
+        .sort({ createdAt: -1 })
+        .limit(10);
+    }
+
+    if (!patients || patients.length === 0) {
       return res.status(404).json({ message: "No patients found" });
     }
 
     res.json(patients);
   } catch (error) {
-    console.error(error);
+    console.error("Error fetching patients:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

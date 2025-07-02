@@ -57,6 +57,7 @@ import {
   getPaginatedInvestigations,
   getPaginatedMedicines,
   getPaginatedProcedures,
+  getPastPatientAppointments,
   getPastPatientSymptomsFindingsDiagnosis,
   getProcedureLocations,
   getSymptomProperties,
@@ -72,6 +73,7 @@ import {
   upsertPatientInvestigation,
   upsertPrescriptionItem,
 } from "../controllers/consultantFollowups.js";
+import { getAppointmentStatsTest } from "../controllers/appointments.js";
 
 const router = express.Router();
 
@@ -189,5 +191,9 @@ router.get("/dosage/calculator", getDosageCalculatorData);
 
 // reports
 router.post("/report", createReport);
+
+// past appointments
+
+router.get("/past/appointments/:appointmentId", getPastPatientAppointments);
 
 export const consultantFollowups = router;
