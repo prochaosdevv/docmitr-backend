@@ -25,6 +25,7 @@ import { consultantFollowups } from "./routes/consultantFollowups.js";
 import { historyTemplatesRoutes } from "./routes/medicalHistroy.js";
 import { labTestsRoute } from "./routes/labtests.js";
 import { attachmentRoute } from "./routes/attachment.js";
+import { doctorReferenceRoutes } from "./routes/doctorReference.js";
 
 // Load environment variables
 dotenv.config();
@@ -66,6 +67,7 @@ app.use("/docmitr/api/templates", templateRoutes);
 app.use("/docmitr/api/drugs", drugsRouter);
 app.use("/docmitr/api/headouts", headoutRouter);
 app.use("/docmitr/api/sms", smsRouter);
+app.use("/docmitr/api/reference", doctorReferenceRoutes);
 
 // Root route
 app.get("/docmitr", (req, res) => {

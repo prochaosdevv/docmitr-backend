@@ -46,10 +46,26 @@ const questionAnswerSchema = new mongoose.Schema({
 // Main medical history schema
 const historySaveSchema = new mongoose.Schema(
   {
-    templateId: { type: String, required: true },
-    patientId: { type: String, required: true },
-    appointmentId: { type: String, required: true },
-    doctorId: { type: String, required: true },
+    templateId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: "HistoryTemplate",
+    },
+    patientId: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+      ref: "Patient",
+    },
+    appointmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+      ref: "Appointment",
+    },
+    doctorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+      ref: "Doctor",
+    },
     answers: [questionAnswerSchema],
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },

@@ -2048,17 +2048,15 @@ export const getPaginatedMedicines = async (req, res) => {
   try {
     const selectedCount = parseInt(req.query.selectedCount || "0");
 
-    // Destructure from authenticated user
-    const { id, role } = req.user;
+    // Authenticated user
+    const { id } = req.user;
 
-    let filter = {
+    const filter = {
       $or: [{ isAdmin: true }, { doctorId: id }],
     };
 
-    // Fetch all medicines sorted by _id (or customize the sort logic)
     const allMedicines = await Medicine.find(filter).sort({ _id: 1 }).lean();
 
-    // Calculate total items to return: first 6 + 1 for each selected checkbox
     const limit = 8 + selectedCount;
     const visibleMedicines = allMedicines.slice(0, limit);
 
@@ -2132,6 +2130,7 @@ export const addOrSaveConsultSymptomsData = async (req, res) => {
       templateId,
       symptomId, // Note: This should match 'sympotmId' from schema
       note,
+      clinic_note,
       since,
       severity,
       location,
@@ -2187,6 +2186,7 @@ export const addOrSaveConsultSymptomsData = async (req, res) => {
     if (existingRecord) {
       existingRecord.templateId = templateId || existingRecord.templateId;
       existingRecord.note = note || existingRecord.note;
+      existingRecord.clinic_note = clinic_note || existingRecord.clinic_note;
       existingRecord.since = since || existingRecord.since;
       existingRecord.severity = severity || existingRecord.severity;
       existingRecord.location = location || existingRecord.location;
@@ -2224,17 +2224,26 @@ export const addOrSaveConsultSymptomsData = async (req, res) => {
       });
     } else {
       // Create new record
-      const newConsultData = new PatientSymptoms({
+
+      // Create new record
+      const record = {
         appointmentId,
         templateId: templateId || null,
-        symptomId: symptomId, // Note the schema field name
+        symptomId,
         note: note || null,
         since: since || null,
         severity: severity || null,
         location: location || null,
         description: description || null,
         details,
-      });
+      };
+
+      // Only add clinic_note if it has a value
+      if (clinic_note && clinic_note.trim() !== "") {
+        record.clinic_note = clinic_note;
+      }
+
+      const newConsultData = new PatientSymptoms(record);
 
       const savedConsultData = await newConsultData.save();
       return res.status(201).json({
@@ -3711,7 +3720,7 @@ export const getProcedureLocations = async (req, res) => {
       appointmentId,
     });
     if (!procedureLocations) {
-      return res.status(404).json({ message: "Procedure locations not found" });
+      return res.status(200).json({ message: "Procedure locations not found" });
     }
 
     res.status(200).json({

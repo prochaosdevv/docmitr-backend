@@ -174,8 +174,6 @@ export const saveHistoryTemplate = async (req, res) => {
     // Check if a record already exists
     let medicalHistory = await HistorySave.findOne({
       templateId,
-      patientId,
-      appointmentId,
     });
 
     if (medicalHistory) {
@@ -214,7 +212,6 @@ export const getMedicalHistory = async (req, res) => {
   try {
     const { templateId, patientId, appointmentId } = req.query;
 
-    // Validate required parameters
     if (!templateId || !patientId || !appointmentId) {
       return res.status(400).json({
         success: false,
@@ -223,20 +220,22 @@ export const getMedicalHistory = async (req, res) => {
       });
     }
 
-    const medicalHistory = await HistorySave.findOne({
+    // Try to find user-specific history first
+    let medicalHistory = await HistorySave.findOne({
       templateId,
       patientId,
       appointmentId,
     });
 
+    // If not found, fall back to default questions with appointmentId and doctorId as null
     if (!medicalHistory) {
-      return res.status(200).json({
-        success: true,
-        data: null,
+      medicalHistory = await HistorySave.findOne({
+        templateId,
+        appointmentId: null,
+        doctorId: null,
       });
     }
 
-    // Return the found medical history
     return res.status(200).json({
       success: true,
       data: medicalHistory,

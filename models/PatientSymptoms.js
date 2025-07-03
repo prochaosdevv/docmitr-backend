@@ -12,6 +12,7 @@ const patientSymptomsSchema = new mongoose.Schema({
     default: null,
   },
   note: { type: String, default: null },
+  clinic_note: { type: String },
   since: { type: String, default: null },
   severity: { type: String, default: null },
   location: { type: String, default: null },
