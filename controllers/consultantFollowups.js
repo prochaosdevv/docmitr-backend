@@ -19,6 +19,7 @@ import DosageCalculatorSchema from "../models/DosageCalculatorSchema.js";
 import Report from "../models/Reports.js";
 import Appoinment from "../models/Appoinment.js";
 import ProcedureLocation from "../models/ProcedureLocation.js";
+import Doctor from "../models/Doctor.js";
 
 export const createSymptomByAdmin = async (req, res) => {
   try {
@@ -2130,7 +2131,6 @@ export const addOrSaveConsultSymptomsData = async (req, res) => {
       templateId,
       symptomId, // Note: This should match 'sympotmId' from schema
       note,
-      clinic_note,
       since,
       severity,
       location,
@@ -2186,7 +2186,6 @@ export const addOrSaveConsultSymptomsData = async (req, res) => {
     if (existingRecord) {
       existingRecord.templateId = templateId || existingRecord.templateId;
       existingRecord.note = note || existingRecord.note;
-      existingRecord.clinic_note = clinic_note || existingRecord.clinic_note;
       existingRecord.since = since || existingRecord.since;
       existingRecord.severity = severity || existingRecord.severity;
       existingRecord.location = location || existingRecord.location;
@@ -2237,11 +2236,6 @@ export const addOrSaveConsultSymptomsData = async (req, res) => {
         description: description || null,
         details,
       };
-
-      // Only add clinic_note if it has a value
-      if (clinic_note && clinic_note.trim() !== "") {
-        record.clinic_note = clinic_note;
-      }
 
       const newConsultData = new PatientSymptoms(record);
 
@@ -3797,7 +3791,6 @@ export const getPastPatientAppointments = async (req, res) => {
       });
     }
 
-    // Fetch appointment to get patientId
     const appointment = await Appoinment.findById(appointmentId);
     if (!appointment) {
       return res.status(404).json({ message: "Appointment not found." });
@@ -3805,54 +3798,53 @@ export const getPastPatientAppointments = async (req, res) => {
 
     const patientId = appointment.patientId;
 
-    // Fetch all past appointments of the patient
     const pastAppointments = await Appoinment.find({
-      patientId: patientId,
+      patientId,
     }).sort({ createdAt: -1 });
 
-    if (!pastAppointments || pastAppointments.length === 0) {
+    const pastAppointmentIds = pastAppointments.map((appt) => appt._id);
+
+    // Map appointmentId => date
+    const appointmentIdToDate = {};
+    // Map appointmentId => doctorId for doctor data lookup
+    const appointmentIdToDoctorId = {};
+    const pastDates = pastAppointments.map((appt) => {
+      appointmentIdToDate[appt._id.toString()] = appt.appointmentDate;
+      appointmentIdToDoctorId[appt._id.toString()] = appt.doctorId;
+      return appt.appointmentDate;
+    });
+
+    if (pastAppointments.length === 0) {
       return res.status(200).json({
         success: true,
         message: "No past appointments found for this patient.",
-        data: {
-          symptoms: [],
-          diagnosis: [],
-          findings: [],
-          medicines: [],
-          investigations: [],
-        },
+        data: {},
+        pastDates: [],
       });
     }
 
-    const pastAppointmentIds = pastAppointments.map((appt) => appt._id);
-    const pastDates = pastAppointments.map((appt) => appt.appointmentDate);
-    const appointmentIdToDate = {};
-    pastAppointments.forEach((appt) => {
-      appointmentIdToDate[appt._id.toString()] = appt.appointmentDate;
-    });
+    // Get unique doctor IDs for fetching doctor data
+    const uniqueDoctorIds = [
+      ...new Set(pastAppointments.map((appt) => appt.doctorId).filter(Boolean)),
+    ];
 
-    // Fetch patient items (Symptoms, Diagnosis, Findings)
-    const patientItems = await PatientSymptoms.find({
-      appointmentId: { $in: pastAppointmentIds },
-    });
+    // Fetch data in parallel (including doctor data)
+    const [patientItems, prescriptionItems, patientInvestigations, doctorData] =
+      await Promise.all([
+        PatientSymptoms.find({ appointmentId: { $in: pastAppointmentIds } }),
+        PrescriptionItem.find({ appointmentId: { $in: pastAppointmentIds } }),
+        PatientInvestigation.find({
+          appointmentId: { $in: pastAppointmentIds },
+        }),
+        Doctor.find({ _id: { $in: uniqueDoctorIds } }),
+      ]);
 
+    // Extract IDs
     const symptomIds = patientItems.map((item) => item.symptomId);
-
-    // Fetch medicines
-    const prescriptionItems = await PrescriptionItem.find({
-      appointmentId: { $in: pastAppointmentIds },
-    });
-
     const medicineIds = prescriptionItems.map((item) => item.medicineId);
-
-    // Fetch investigations
-    const patientInvestigations = await PatientInvestigation.find({
-      appointmentId: { $in: pastAppointmentIds },
-    });
-
     const investigationIds = patientInvestigations
       .flatMap((inv) => inv.investigations)
-      .filter((id) => id);
+      .filter(Boolean);
 
     // Fetch master data
     const [
@@ -3894,29 +3886,86 @@ export const getPastPatientAppointments = async (req, res) => {
     const investigationsMap = Object.fromEntries(
       allInvestigations.map((i) => [i._id.toString(), i.toObject()])
     );
+    // Create doctor lookup map
+    const doctorsMap = Object.fromEntries(
+      doctorData.map((d) => [d._id.toString(), d.toObject()])
+    );
 
-    const symptoms = [];
-    const findings = [];
-    const diagnosis = [];
-    const medicines = [];
-    const investigations = [];
+    const datewiseData = {};
 
-    // Process patient items (symptoms, findings, diagnosis)
+    const formatDate = (rawDate) => {
+      // Add null check for rawDate
+      if (!rawDate) return null;
+      const d = new Date(rawDate);
+      // Check if date is valid
+      if (isNaN(d.getTime())) return null;
+      return d.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }); // Example: "2 July 2025"
+    };
+
+    const initDateBucket = (date, appointmentId) => {
+      // Add null check for date
+      if (!date) return;
+      if (!datewiseData[date]) {
+        // Get doctor data for this appointment
+        const doctorId = appointmentIdToDoctorId[appointmentId];
+        const doctorInfo = doctorId ? doctorsMap[doctorId.toString()] : null;
+
+        datewiseData[date] = {
+          symptoms: [],
+          findings: [],
+          diagnosis: [],
+          medicines: [],
+          investigations: [],
+          doctor: doctorInfo
+            ? {
+                doctorId: doctorInfo._id,
+                name:
+                  `${doctorInfo.firstName} ${doctorInfo.lastName}` ||
+                  "Unknown Doctor",
+                specialization: doctorInfo.specialization || "",
+                email: doctorInfo.email || "",
+                phone: doctorInfo.phone || "",
+                profileImage: doctorInfo.profileImage || null,
+              }
+            : null,
+        };
+      }
+    };
+
+    // Process symptoms/findings/diagnosis
     for (const item of patientItems) {
+      // Add null checks
+      if (!item || !item.appointmentId || !item.symptomId) continue;
+
+      const appointmentIdStr = item.appointmentId.toString();
+      const appointmentDateRaw = appointmentIdToDate[appointmentIdStr];
+      const appointmentDate = formatDate(appointmentDateRaw);
+
+      // Skip if date formatting failed
+      if (!appointmentDate) continue;
+
+      initDateBucket(appointmentDate, appointmentIdStr);
+
       const symptomIdStr = item.symptomId.toString();
-      const appointmentDate =
-        appointmentIdToDate[item.appointmentId.toString()] || null;
 
       let category = null;
       if (symptomsMap[symptomIdStr]) {
-        category = { ...symptomsMap[symptomIdStr], type: "symptom" };
+        category = symptomsMap[symptomIdStr];
       } else if (findingsMap[symptomIdStr]) {
-        category = { ...findingsMap[symptomIdStr], type: "finding" };
+        category = findingsMap[symptomIdStr];
       } else if (diagnosisMap[symptomIdStr]) {
-        category = { ...diagnosisMap[symptomIdStr], type: "diagnosis" };
+        category = diagnosisMap[symptomIdStr];
       }
 
       if (!category) continue;
+
+      const type = category.type;
+      const validTypes = ["symptom", "finding", "diagnosis"];
+      if (!validTypes.includes(type)) continue;
 
       const itemObj = {
         symptomId: item.symptomId,
@@ -3927,26 +3976,34 @@ export const getPastPatientAppointments = async (req, res) => {
         location: item.location || null,
         description: item.description || null,
         details: item.details || [],
-        type: category.type,
-        date: appointmentDate,
+        type: type,
       };
 
-      if (category.type === "symptom") {
-        symptoms.push(itemObj);
-      } else if (category.type === "finding") {
-        findings.push(itemObj);
-      } else if (category.type === "diagnosis") {
-        diagnosis.push(itemObj);
+      // Additional safety check before push
+      if (
+        datewiseData[appointmentDate] &&
+        datewiseData[appointmentDate][type + "s"]
+      ) {
+        datewiseData[appointmentDate][type + "s"].push(itemObj);
       }
     }
 
-    // Process medicines
+    // Process prescriptions
     for (const item of prescriptionItems) {
-      const medicineIdStr = item.medicineId?.toString();
-      const medicineData = medicinesMap[medicineIdStr];
-      const appointmentDate =
-        appointmentIdToDate[item.appointmentId.toString()] || null;
+      // Add null checks
+      if (!item || !item.appointmentId || !item.medicineId) continue;
 
+      const appointmentIdStr = item.appointmentId.toString();
+      const appointmentDateRaw = appointmentIdToDate[appointmentIdStr];
+      const appointmentDate = formatDate(appointmentDateRaw);
+
+      // Skip if date formatting failed
+      if (!appointmentDate) continue;
+
+      initDateBucket(appointmentDate, appointmentIdStr);
+
+      const medicineIdStr = item.medicineId.toString();
+      const medicineData = medicinesMap[medicineIdStr];
       if (!medicineData) continue;
 
       const medicineObj = {
@@ -3954,10 +4011,9 @@ export const getPastPatientAppointments = async (req, res) => {
         name: medicineData.name || "Unknown Medicine",
         compositionName: medicineData.compositionName || "",
         doses: [],
-        date: appointmentDate,
       };
 
-      if (item.doses && item.doses.length > 0) {
+      if (item.doses?.length > 0) {
         for (const dose of item.doses) {
           medicineObj.doses.push({
             doseNumber: dose.doseNumber,
@@ -3971,26 +4027,50 @@ export const getPastPatientAppointments = async (req, res) => {
         }
       }
 
-      medicines.push(medicineObj);
+      // Additional safety check before push
+      if (
+        datewiseData[appointmentDate] &&
+        datewiseData[appointmentDate].medicines
+      ) {
+        datewiseData[appointmentDate].medicines.push(medicineObj);
+      }
     }
 
     // Process investigations
     for (const inv of patientInvestigations) {
-      const appointmentDate =
-        appointmentIdToDate[inv.appointmentId.toString()] || null;
+      // Add null checks
+      if (!inv || !inv.appointmentId) continue;
 
-      if (inv.investigations && inv.investigations.length > 0) {
+      const appointmentIdStr = inv.appointmentId.toString();
+      const appointmentDateRaw = appointmentIdToDate[appointmentIdStr];
+      const appointmentDate = formatDate(appointmentDateRaw);
+
+      // Skip if date formatting failed
+      if (!appointmentDate) continue;
+
+      initDateBucket(appointmentDate, appointmentIdStr);
+
+      if (inv.investigations?.length > 0) {
         for (const invId of inv.investigations) {
+          if (!invId) continue;
+
           const invData = investigationsMap[invId.toString()];
           if (!invData) continue;
 
-          investigations.push({
+          const invObj = {
             investigationId: invId,
             name: invData.name || "Unknown Investigation",
             description: invData.description || "",
             category: invData.category || "",
-            date: appointmentDate,
-          });
+          };
+
+          // Additional safety check before push
+          if (
+            datewiseData[appointmentDate] &&
+            datewiseData[appointmentDate].investigations
+          ) {
+            datewiseData[appointmentDate].investigations.push(invObj);
+          }
         }
       }
     }
@@ -3998,17 +4078,14 @@ export const getPastPatientAppointments = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Past patient clinical data fetched successfully.",
-      data: {
-        symptoms,
-        findings,
-        diagnosis,
-        medicines,
-        investigations,
-      },
-      pastDates,
+      data: datewiseData,
+      pastDates, // optional — your frontend may stop using this
     });
   } catch (error) {
     console.error("Error fetching past patient data:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
   }
 };

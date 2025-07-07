@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import LabTestPatient from "../models/LabTestPatient.js";
 import LabTests from "../models/LabTests.js";
 import LabTestsProperties from "../models/LabTestsProperties.js";
@@ -20,10 +21,96 @@ const normalizePropertyStatus = (str) => {
   return str;
 };
 
+export const addLabTest = async (req, res) => {
+  try {
+    const { testName } = req.body;
+    if (!testName) {
+      return res.status(400).json({
+        success: false,
+        message: "Test name is required.",
+      });
+    }
+
+    const newLabTest = new LabTests({ testName });
+    await newLabTest.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "Lab test added successfully.",
+      labTest: newLabTest,
+    });
+  } catch (error) {
+    console.log("Error in addLabTest:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const addLabTestProperties = async (req, res) => {
+  try {
+    const { labTestId, params } = req.body;
+
+    // Check required fields
+    if (!labTestId || !mongoose.Types.ObjectId.isValid(labTestId)) {
+      return res.status(400).json({
+        success: false,
+        message: "A valid labTestId is required.",
+      });
+    }
+
+    if (!Array.isArray(params) || params.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Params array is required with at least one property.",
+      });
+    }
+
+    // Check if the lab test exists
+    const labTest = await LabTests.findById(labTestId);
+    if (!labTest) {
+      return res.status(404).json({
+        success: false,
+        message: "Lab test not found.",
+      });
+    }
+
+    // Optional: Validate each param object
+    for (const param of params) {
+      if (!param.propertyName || typeof param.propertyName !== "string") {
+        return res.status(400).json({
+          success: false,
+          message: "Each param must have a valid 'propertyName'.",
+        });
+      }
+    }
+
+    const newProperties = new LabTestsProperties({
+      labTestId,
+      params,
+    });
+
+    await newProperties.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "Lab test properties added successfully.",
+      labTestProperties: newProperties,
+    });
+  } catch (error) {
+    console.error("Error in addLabTestProperties:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+    });
+  }
+};
+
 // Get all lab test names
 export const getLabTestRecords = async (req, res) => {
   try {
-    const results = await LabTests.find({});
+    const results = await LabTests.find({}).sort({ createdAt: -1 });
     return res.status(200).json({
       success: true,
       labTests: results,

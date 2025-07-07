@@ -434,7 +434,7 @@ export const updateNotes = async (req, res) => {
       });
     }
 
-    const validNoteTypes = ["prescriptionNotes", "doctorNotes"];
+    const validNoteTypes = ["prescriptionNotes", "doctorNotes", "clinicNotes"];
 
     if (!validNoteTypes.includes(noteType)) {
       return res.status(400).json({
@@ -443,7 +443,12 @@ export const updateNotes = async (req, res) => {
       });
     }
 
-    const update = { [noteType]: value };
+    let update = { [noteType]: value };
+
+    if (noteType === "clinicNotes") {
+      // Ensure clinicNotes is a string
+      update.clinicNotes = value;
+    }
 
     const updatedAppointment = await Appoinment.findByIdAndUpdate(
       id,

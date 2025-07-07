@@ -1,5 +1,7 @@
 import express from "express";
 import {
+  addLabTest,
+  addLabTestProperties,
   addOrUpdateLabTestPatient,
   deleteLabTestPatient,
   getLabPropertiesByTestId,
@@ -9,6 +11,8 @@ import {
 
 const router = express.Router();
 
+router.post("/", addLabTest);
+router.post("/properties", addLabTestProperties);
 router.get("/", getLabTestRecords);
 router.get("/:labTestId", getLabPropertiesByTestId);
 router.post("/save-labtest-data", addOrUpdateLabTestPatient);

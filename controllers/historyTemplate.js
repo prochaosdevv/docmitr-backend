@@ -174,6 +174,7 @@ export const saveHistoryTemplate = async (req, res) => {
     // Check if a record already exists
     let medicalHistory = await HistorySave.findOne({
       templateId,
+      patientId,
     });
 
     if (medicalHistory) {
@@ -235,6 +236,26 @@ export const getMedicalHistory = async (req, res) => {
         doctorId: null,
       });
     }
+
+    return res.status(200).json({
+      success: true,
+      data: medicalHistory,
+    });
+  } catch (error) {
+    console.error("Error retrieving medical history:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to retrieve medical history",
+      error: error.message,
+    });
+  }
+};
+
+export const getSavedMedicalHistoryByPatient = async (req, res) => {
+  try {
+    const patientId = req.params.patientId;
+
+    const medicalHistory = await HistorySave.find({ patientId });
 
     return res.status(200).json({
       success: true,

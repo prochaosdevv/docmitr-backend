@@ -7,6 +7,7 @@ import {
   getAllHistoryTemplates,
   getHistoryTemplateById,
   getMedicalHistory,
+  getSavedMedicalHistoryByPatient,
   saveHistoryTemplate,
   updateHistoryTemplateByAdmin,
   updateHistoryTemplateByDoctor,
@@ -48,5 +49,9 @@ router.get("/options/:questionId", getHistoryOptionsByQuestionId);
 
 router.post("/template/save", saveHistoryTemplate);
 router.get("/template/get-saved-data", getMedicalHistory);
+router.get(
+  "/template/get-saved-data/:patientId",
+  getSavedMedicalHistoryByPatient
+);
 
 export const historyTemplatesRoutes = router;
