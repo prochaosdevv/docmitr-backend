@@ -369,8 +369,6 @@ export const getPatients = async (req, res) => {
         return res.status(400).json({ message: "Doctor ID is required" });
       }
 
-      console.log("Fetching patients for doctor:", doctorId);
-
       patients = await Patient.find({ doctorId })
         .select(
           "name email phone patientId patientUID caretakerName thirdPartyUID ageMonths ageYears gender clinicSpecificId bloodGroup dobYear dobMonth dobDate address1 address2 area pincode city district state country _id"
@@ -388,7 +386,7 @@ export const getPatients = async (req, res) => {
     }
 
     if (!patients || patients.length === 0) {
-      return res.status(404).json({ message: "No patients found" });
+      return res.status(200).json([]);
     }
 
     res.json(patients);
