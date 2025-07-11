@@ -26,6 +26,7 @@ import { historyTemplatesRoutes } from "./routes/medicalHistroy.js";
 import { labTestsRoute } from "./routes/labtests.js";
 import { attachmentRoute } from "./routes/attachment.js";
 import { doctorReferenceRoutes } from "./routes/doctorReference.js";
+import { prescriptionTemplateRoutes } from "./routes/prescriptionRoutes.js";
 
 // Load environment variables
 dotenv.config();
@@ -63,6 +64,11 @@ app.use(
 );
 app.use("/docmitr/api/attachments", authenticateToken, attachmentRoute);
 app.use("/docmitr/api/labtests", authenticateToken, labTestsRoute);
+app.use(
+  "/docmitr/api/prescriptions",
+  authenticateToken,
+  prescriptionTemplateRoutes
+);
 app.use("/docmitr/api/templates", templateRoutes);
 app.use("/docmitr/api/drugs", drugsRouter);
 app.use("/docmitr/api/headouts", headoutRouter);
