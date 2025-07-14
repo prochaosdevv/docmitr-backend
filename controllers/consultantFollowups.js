@@ -3330,6 +3330,7 @@ export const upsertPrescriptionItem = async (req, res) => {
         appointmentId,
         templateId: null,
         medicineId,
+        doctorId: req.user.id,
         doses,
       });
 

@@ -307,13 +307,19 @@ export const updateCheckInCheckOut = async (req, res) => {
 
 export const getAppointmentStatsTest = async (req, res) => {
   try {
-    const { date } = req.query; // e.g., "27 June 2025"
+    const { date, timeEnv = "morning" } = req.query; // e.g., "27 June 2025"
 
     if (!date) {
       return res.status(400).json({ message: "Date is required" });
     }
 
-    const appointments = await Appoinment.find({ appointmentDate: date });
+    const doctorId = req.user.id;
+
+    const appointments = await Appoinment.find({
+      appointmentDate: date,
+      doctorId: doctorId,
+      appointmentSession: timeEnv,
+    });
 
     const totalAppointments = appointments.length;
 
