@@ -1557,8 +1557,6 @@ export const createInvestigationByDoctor = async (req, res) => {
 
 export const getPaginatedInvestigations = async (req, res) => {
   try {
-    const selectedCount = parseInt(req.query.selectedCount || "0");
-
     // Destructure from authenticated user
     const { id, role } = req.user;
 
@@ -1571,11 +1569,7 @@ export const getPaginatedInvestigations = async (req, res) => {
       .sort({ _id: 1 })
       .lean();
 
-    // Calculate total items to return: first 6 + 1 for each selected checkbox
-    const limit = 6 + selectedCount;
-    const visibleInvestigations = allInvestigations.slice(0, limit);
-
-    res.status(200).json({ investigations: visibleInvestigations });
+    res.status(200).json({ investigations: allInvestigations });
   } catch (err) {
     console.error("Error fetching investigations:", err);
     res.status(500).json({ message: "Failed to fetch investigations" });
@@ -1761,8 +1755,6 @@ export const createInstructionsByDoctor = async (req, res) => {
 
 export const getPaginatedInstructions = async (req, res) => {
   try {
-    const selectedCount = parseInt(req.query.selectedCount || "0");
-
     // Destructure from authenticated user
     const { id, role } = req.user;
 
@@ -1776,10 +1768,8 @@ export const getPaginatedInstructions = async (req, res) => {
       .lean();
 
     // Calculate total items to return: first 6 + 1 for each selected checkbox
-    const limit = 6 + selectedCount;
-    const visibleInvestigations = allInvestigations.slice(0, limit);
 
-    res.status(200).json({ instructions: visibleInvestigations });
+    res.status(200).json({ instructions: allInvestigations });
   } catch (err) {
     console.error("Error fetching instructions:", err);
     res.status(500).json({ message: "Failed to fetch instructions" });
@@ -1849,8 +1839,6 @@ export const createProcedureByDoctor = async (req, res) => {
 
 export const getPaginatedProcedures = async (req, res) => {
   try {
-    const selectedCount = parseInt(req.query.selectedCount || "0");
-
     // Destructure from authenticated user
     const { id, role } = req.user;
 
@@ -1863,11 +1851,7 @@ export const getPaginatedProcedures = async (req, res) => {
       .sort({ _id: 1 })
       .lean();
 
-    // Calculate total items to return: first 6 + 1 for each selected checkbox
-    const limit = 6 + selectedCount;
-    const visibleInvestigations = allInvestigations.slice(0, limit);
-
-    res.status(200).json({ procedures: visibleInvestigations });
+    res.status(200).json({ procedures: allInvestigations });
   } catch (err) {
     console.error("Error fetching procedures:", err);
     res.status(500).json({ message: "Failed to fetch procedures" });
