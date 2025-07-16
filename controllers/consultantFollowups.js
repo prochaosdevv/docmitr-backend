@@ -315,18 +315,18 @@ export const editSymptomProperty = async (req, res) => {
 
     const symptomProperty = await SymptomsProperties.findOne({
       symptopId,
-      doctorId: user.role === "doctor" ? user.id : null,
-      isAdmin: user.role === "admin" ? true : false,
+      // doctorId: user.role === "doctor" ? user.id : null,
+      // isAdmin: user.role === "admin" ? true : false,
     });
 
     if (!symptomProperty) {
       return res.status(404).json({ message: "Symptom property not found." });
     }
 
-    // Clone details array to modify
+    // Clone current details
     let updatedDetails = [...symptomProperty.details];
 
-    // 1. Rename category
+    // 1. Rename category (if needed)
     if (renameCategoryId && typeof renameCategoryTo === "string") {
       const categoryIndex = updatedDetails.findIndex(
         (cat) => cat._id.toString() === renameCategoryId
@@ -336,40 +336,53 @@ export const editSymptomProperty = async (req, res) => {
           message: `Category with id '${renameCategoryId}' not found.`,
         });
       }
-      updatedDetails[categoryIndex].categoryName = renameCategoryTo.trim(); // allow ""
+      updatedDetails[categoryIndex].categoryName = renameCategoryTo.trim();
     }
 
-    // 2. Process category updates
+    // 2. Handle category update
     details.forEach((newCategory) => {
       const categoryIndex = updatedDetails.findIndex(
         (cat) => cat._id.toString() === newCategory._id
       );
 
       if (categoryIndex !== -1) {
-        // Update existing category
         const existingCategory = updatedDetails[categoryIndex];
 
+        // Extract existing and incoming property IDs
+        const incomingPropIds = newCategory.categoryProperties
+          .filter((p) => p._id) // Only those with _id
+          .map((p) => p._id.toString());
+
+        // Filter out removed properties
+        existingCategory.categoryProperties =
+          existingCategory.categoryProperties.filter((p) =>
+            incomingPropIds.includes(p._id?.toString())
+          );
+
+        // Now update or push each property
         newCategory.categoryProperties.forEach((newProp) => {
           const propIndex = existingCategory.categoryProperties.findIndex(
             (p) => p._id?.toString() === newProp._id
           );
 
           if (propIndex !== -1) {
-            // ✅ Correctly update property name/value
             existingCategory.categoryProperties[propIndex] = {
               ...existingCategory.categoryProperties[propIndex],
               propertyName: newProp.propertyName,
               propertyValue: newProp.propertyValue,
             };
           } else {
-            // Add new property
-            existingCategory.categoryProperties.push(newProp);
+            // New property (without _id)
+            existingCategory.categoryProperties.push({
+              propertyName: newProp.propertyName,
+              propertyValue: newProp.propertyValue,
+            });
           }
         });
 
         updatedDetails[categoryIndex] = existingCategory;
       } else {
-        // Add new category
+        // Category not found, add it completely
         updatedDetails.push(newCategory);
       }
     });
@@ -807,21 +820,21 @@ export const editFindingsProperty = async (req, res) => {
       });
     }
 
-    const symptomProperty = await FindingsProperties.findOne({
+    const findingProperty = await FindingsProperties.findOne({
       findingsId,
-      doctorId: user.role === "doctor" ? user.id : null,
-      isAdmin: user.role === "admin" ? true : false,
+      // doctorId: user.role === "doctor" ? user.id : null,
+      // isAdmin: user.role === "admin" ? true : false,
     });
 
-    if (!symptomProperty) {
+    if (!findingProperty) {
       return res.status(404).json({ message: "Finding property not found." });
     }
 
-    // Clone details array to modify
-    let updatedDetails = [...symptomProperty.details];
+    // Clone current details
+    let updatedDetails = [...findingProperty.details];
 
-    // 1. Rename category
-    if (renameCategoryId && renameCategoryTo) {
+    // 1. Rename category (if provided)
+    if (renameCategoryId && typeof renameCategoryTo === "string") {
       const categoryIndex = updatedDetails.findIndex(
         (cat) => cat._id.toString() === renameCategoryId
       );
@@ -830,26 +843,37 @@ export const editFindingsProperty = async (req, res) => {
           message: `Category with id '${renameCategoryId}' not found.`,
         });
       }
-      updatedDetails[categoryIndex].categoryName = renameCategoryTo;
+      updatedDetails[categoryIndex].categoryName = renameCategoryTo.trim();
     }
 
-    // 2. Process category updates
+    // 2. Update category data
     details.forEach((newCategory) => {
       const categoryIndex = updatedDetails.findIndex(
         (cat) => cat._id.toString() === newCategory._id
       );
 
       if (categoryIndex !== -1) {
-        // Update existing category
         const existingCategory = updatedDetails[categoryIndex];
 
+        // Prepare list of new prop IDs
+        const incomingPropIds = newCategory.categoryProperties
+          .filter((p) => p._id)
+          .map((p) => p._id.toString());
+
+        // 🗑️ Remove deleted properties
+        existingCategory.categoryProperties =
+          existingCategory.categoryProperties.filter((p) =>
+            incomingPropIds.includes(p._id?.toString())
+          );
+
+        // Update or add each property
         newCategory.categoryProperties.forEach((newProp) => {
           const propIndex = existingCategory.categoryProperties.findIndex(
             (p) => p._id?.toString() === newProp._id
           );
 
           if (propIndex !== -1) {
-            // ✅ Correctly update property name/value
+            // Update existing
             existingCategory.categoryProperties[propIndex] = {
               ...existingCategory.categoryProperties[propIndex],
               propertyName: newProp.propertyName,
@@ -857,24 +881,27 @@ export const editFindingsProperty = async (req, res) => {
             };
           } else {
             // Add new property
-            existingCategory.categoryProperties.push(newProp);
+            existingCategory.categoryProperties.push({
+              propertyName: newProp.propertyName,
+              propertyValue: newProp.propertyValue,
+            });
           }
         });
 
         updatedDetails[categoryIndex] = existingCategory;
       } else {
-        // Add new category
+        // ➕ New category
         updatedDetails.push(newCategory);
       }
     });
 
-    symptomProperty.details = updatedDetails;
-    symptomProperty.markModified("details");
-    await symptomProperty.save();
+    findingProperty.details = updatedDetails;
+    findingProperty.markModified("details");
+    await findingProperty.save();
 
     return res.status(200).json({
       message: "Finding properties updated successfully.",
-      data: symptomProperty,
+      data: findingProperty,
     });
   } catch (error) {
     console.error("Error editing finding property:", error);
@@ -1304,20 +1331,19 @@ export const editDiagnosisProperty = async (req, res) => {
       });
     }
 
-    const symptomProperty = await DiagnosisProperties.findOne({
+    const diagnosisProperty = await DiagnosisProperties.findOne({
       diagnosisId,
       doctorId: user.role === "doctor" ? user.id : null,
       isAdmin: user.role === "admin" ? true : false,
     });
 
-    if (!symptomProperty) {
-      return res.status(404).json({ message: "Finding property not found." });
+    if (!diagnosisProperty) {
+      return res.status(404).json({ message: "Diagnosis property not found." });
     }
 
-    // Clone details array to modify
-    let updatedDetails = [...symptomProperty.details];
+    let updatedDetails = [...diagnosisProperty.details];
 
-    // 1. Rename category
+    // 1. Rename category if needed
     if (renameCategoryId && renameCategoryTo) {
       const categoryIndex = updatedDetails.findIndex(
         (cat) => cat._id.toString() === renameCategoryId
@@ -1327,7 +1353,7 @@ export const editDiagnosisProperty = async (req, res) => {
           message: `Category with id '${renameCategoryId}' not found.`,
         });
       }
-      updatedDetails[categoryIndex].categoryName = renameCategoryTo;
+      updatedDetails[categoryIndex].categoryName = renameCategoryTo.trim();
     }
 
     // 2. Process category updates
@@ -1337,41 +1363,55 @@ export const editDiagnosisProperty = async (req, res) => {
       );
 
       if (categoryIndex !== -1) {
-        // Update existing category
         const existingCategory = updatedDetails[categoryIndex];
 
+        // Collect incoming property IDs (that should remain)
+        const incomingPropIds = newCategory.categoryProperties
+          .filter((p) => p._id)
+          .map((p) => p._id.toString());
+
+        // 🗑️ Remove properties that no longer exist
+        existingCategory.categoryProperties =
+          existingCategory.categoryProperties.filter((p) =>
+            incomingPropIds.includes(p._id?.toString())
+          );
+
+        // Update or add each property
         newCategory.categoryProperties.forEach((newProp) => {
           const propIndex = existingCategory.categoryProperties.findIndex(
             (p) => p._id?.toString() === newProp._id
           );
 
           if (propIndex !== -1) {
-            // ✅ Correctly update property name/value
+            // Update
             existingCategory.categoryProperties[propIndex] = {
               ...existingCategory.categoryProperties[propIndex],
               propertyName: newProp.propertyName,
               propertyValue: newProp.propertyValue,
             };
           } else {
-            // Add new property
-            existingCategory.categoryProperties.push(newProp);
+            // Add
+            existingCategory.categoryProperties.push({
+              propertyName: newProp.propertyName,
+              propertyValue: newProp.propertyValue,
+            });
           }
         });
 
         updatedDetails[categoryIndex] = existingCategory;
       } else {
-        // Add new category
+        // ➕ Add new category
         updatedDetails.push(newCategory);
       }
     });
 
-    symptomProperty.details = updatedDetails;
-    symptomProperty.markModified("details");
-    await symptomProperty.save();
+    diagnosisProperty.details = updatedDetails;
+    diagnosisProperty.markModified("details");
+    await diagnosisProperty.save();
 
     return res.status(200).json({
       message: "Diagnosis properties updated successfully.",
-      data: symptomProperty,
+      data: diagnosisProperty,
     });
   } catch (error) {
     console.error("Error editing diagnosis property:", error);
