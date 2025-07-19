@@ -15,6 +15,7 @@ import MedicalRecord from "./models/MedicalRecord.js";
 // import Vital from "./models/Vital.js";
 import SingleSlot from "./models/SingleSlot.js";
 import SMS from "./models/SMS.js";
+import Allergies from "./models/Allergy.js";
 
 // Connect to MongoDB
 await mongoose.connect(process.env.MONGO_URI);
@@ -462,6 +463,51 @@ const seedSms = async () => {
   await SMS.insertMany(templates);
 };
 
+const allergyNames = [
+  "Penicillin",
+  "Amoxicillin",
+  "Ampicillin",
+  "Cephalexin",
+  "Ceftriaxone",
+  "Erythromycin",
+  "Clindamycin",
+  "Vancomycin",
+  "Sulfamethoxazole/Trimethoprim",
+  "Aspirin",
+  "Ibuprofen",
+  "Naproxen",
+  "Diclofenac",
+  "Ketorolac",
+  "Indomethacin",
+  "Lidocaine",
+  "Procaine",
+  "Bupivacaine",
+  "Articaine",
+  "Phenytoin",
+  "Carbamazepine",
+  "Lamotrigine",
+  "Valproic acid",
+  "Heparin",
+  "Allopurinol",
+];
+
+const seedAllergies = async () => {
+  try {
+    // Optional: clear existing data
+    await Allergies.deleteMany({});
+    console.log("Old allergy records deleted");
+
+    const formatted = allergyNames.map((name) => ({ allergyName: name }));
+    await Allergies.insertMany(formatted);
+    console.log("Allergy names seeded successfully");
+
+    process.exit(0);
+  } catch (err) {
+    console.error("Seeding error:", err);
+    process.exit(1);
+  }
+};
+
 // Run all seed functions
 const seedAll = async () => {
   try {
@@ -474,7 +520,8 @@ const seedAll = async () => {
     // await seedVitals();
     // await seedSingleSlot();
 
-    await seedSms();
+    // await seedSms();
+    await seedAllergies();
 
     // const doc = await User.findOne({ email: "amit.sharma@docmitr.com" });
 

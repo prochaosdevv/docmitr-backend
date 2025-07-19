@@ -117,6 +117,16 @@ const prescriptionItemSchema = new mongoose.Schema({
     default: false,
   },
   doses: [doseSchema],
+  allergies: [
+    {
+      type: String,
+    },
+  ],
+  patientId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Patient",
+    default: null,
+  },
 });
 
 // Create a compound index to ensure uniqueness for appointmentId + medicineId

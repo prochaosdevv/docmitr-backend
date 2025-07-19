@@ -221,8 +221,6 @@ export const getAppointmentByIds = async (req, res) => {
 
 export const updateAppointment = (req, res) => {};
 
-export const deleteAppointment = (req, res) => {};
-
 export const getAppointmentDetails = async (req, res) => {
   try {
     const { appointmentId } = req.params;
@@ -355,6 +353,7 @@ export const getAppointmentStatsTest = async (req, res) => {
       date,
       totalAppointments,
       waitingCount,
+      completedAppointments,
       avgWaitingTimeInMinutes: avgWaitingTime,
     });
   } catch (error) {
@@ -480,5 +479,74 @@ export const updateNotes = async (req, res) => {
       success: false,
       message: "Internal server error",
     });
+  }
+};
+
+export const updateAppointmentPurposeofVisit = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { purposeOfVisit } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Appointment ID",
+      });
+    }
+
+    if (!purposeOfVisit || typeof purposeOfVisit !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Purpose of visit is required and must be a string",
+      });
+    }
+
+    const updatedAppointment = await Appoinment.findByIdAndUpdate(
+      id,
+      { purposeOfVisit },
+      { new: true }
+    );
+
+    if (!updatedAppointment) {
+      return res.status(404).json({
+        success: false,
+        message: "Appointment not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Appointment purpose of visit updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating appointment purpose of visit:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const deleteAppointment = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid appointment ID" });
+    }
+
+    const deletedAppointment = await Appoinment.findByIdAndDelete(id);
+
+    if (!deletedAppointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    return res.status(200).json({
+      message: "Appointment deleted successfully",
+      appointment: deletedAppointment,
+    });
+  } catch (error) {
+    console.error("Error deleting appointment:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };

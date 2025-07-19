@@ -20,6 +20,7 @@ import Report from "../models/Reports.js";
 import Appoinment from "../models/Appoinment.js";
 import ProcedureLocation from "../models/ProcedureLocation.js";
 import Doctor from "../models/Doctor.js";
+import Allergy from "../models/Allergy.js";
 
 export const createSymptomByAdmin = async (req, res) => {
   try {
@@ -3294,7 +3295,13 @@ export const deletePatientSymptoms = async (req, res) => {
 
 export const upsertPrescriptionItem = async (req, res) => {
   try {
-    const { appointmentId, medicineId, doses = [], templateId } = req.body;
+    const {
+      appointmentId,
+      medicineId,
+      doses = [],
+      templateId,
+      patientId,
+    } = req.body;
 
     if (
       !appointmentId ||
@@ -3356,6 +3363,7 @@ export const upsertPrescriptionItem = async (req, res) => {
         medicineId,
         doctorId: req.user.id,
         doses,
+        patientId: patientId || null, // Optional field
       });
 
       return res.status(201).json({
@@ -4112,5 +4120,91 @@ export const getPastPatientAppointments = async (req, res) => {
       message: "Server error",
       error: error.message,
     });
+  }
+};
+
+// allergy
+
+export const getAllergies = async (req, res) => {
+  try {
+    const allergies = await Allergy.find({});
+    return res.status(200).json({
+      success: true,
+      allergies: allergies,
+    });
+  } catch (error) {
+    console.log("Error fetching allergies:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+export const upsetAllergy = async (req, res) => {
+  try {
+    const { allergyName, patientId } = req.body;
+
+    const isAllergyExists = await PrescriptionItem.findOne({
+      patientId: patientId,
+      allergies: { $in: [allergyName] }, // ✅ correct usage
+    });
+
+    if (isAllergyExists) {
+      return res.status(200).json({
+        message: "Allergy already exists. Choose a different one.",
+      });
+    }
+
+    // Add the allergy to the prescription item
+    await PrescriptionItem.findOneAndUpdate(
+      { patientId: patientId },
+      { $addToSet: { allergies: allergyName } },
+      { new: true, upsert: true }
+    );
+
+    return res.status(200).json({
+      message: "Allergy added successfully.",
+    });
+  } catch (error) {
+    console.log("Error updating allergy:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+export const getAllergiesByPatientId = async (req, res) => {
+  try {
+    const { patientId } = req.params;
+
+    if (!patientId || !mongoose.Types.ObjectId.isValid(patientId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid patientId is required.",
+      });
+    }
+
+    const prescriptionItem = await PrescriptionItem.findOne({
+      patientId: patientId,
+    });
+
+    if (!prescriptionItem || !prescriptionItem.allergies) {
+      return res.status(404).json({
+        success: false,
+        message: "No allergies found for this patient.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      allergies: prescriptionItem.allergies,
+    });
+  } catch (error) {
+    console.error("Error fetching allergies by patientId:", error);
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };

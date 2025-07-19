@@ -43,6 +43,8 @@ import {
   editFindingsProperty,
   editSymptomProperty,
   getAllDiagnosis,
+  getAllergies,
+  getAllergiesByPatientId,
   getAllFindings,
   getAllSavedTemplates,
   getAllSymptoms,
@@ -72,6 +74,7 @@ import {
   searchSymptoms,
   upsertPatientInvestigation,
   upsertPrescriptionItem,
+  upsetAllergy,
 } from "../controllers/consultantFollowups.js";
 import { getAppointmentStatsTest } from "../controllers/appointments.js";
 
@@ -173,6 +176,11 @@ router.get("/medicines", getPaginatedMedicines); // Assuming this should be a di
 router.get("/medicines/search", searchMedicines);
 router.get("/medicines/categories/search", allMedicineCategories);
 router.get("/medicines/compositions/search", allMedicineCompositions);
+
+// allergies
+router.get("/allergies", getAllergies);
+router.put("/allergies/upsert", upsetAllergy);
+router.get("/allergies/:patientId", getAllergiesByPatientId);
 
 router.post("/medicine/properties-save", upsertPrescriptionItem);
 router.post("/medicine/properties-save/data", addOrUpdateMedicineData);

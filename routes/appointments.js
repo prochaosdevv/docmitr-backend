@@ -11,6 +11,7 @@ import {
   getAppointmentStatsTest,
   updateProcedureDate,
   updateNotes,
+  updateAppointmentPurposeofVisit,
 } from "../controllers/appointments.js";
 
 const router = express.Router();
@@ -18,6 +19,7 @@ const router = express.Router();
 router.get("/", getAppointments);
 router.post("/", createAppointment);
 router.put("/:id", updateAppointment);
+router.put("/:id/purpose-of-visit", updateAppointmentPurposeofVisit);
 router.delete("/:id", deleteAppointment);
 router.get("/all/:clinicId", getAppointmentByIds);
 router.get("/:appointmentId", getAppointmentDetails);
