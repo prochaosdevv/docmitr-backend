@@ -75,3 +75,75 @@ export const getPrescriptionTemplate = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+export const getTemplateSettings = async (req, res) => {
+  try {
+    const { clinicId } = req.query;
+
+    const doctorId = req.user.id;
+
+    const template = await PrescriptionTemplates.findOne({
+      clinicId,
+      doctorId,
+    });
+
+    if (!template) {
+      return res.status(404).json({
+        success: false,
+        message: "Template not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: template.templateSettings || {},
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching template settings",
+      error: error.message,
+    });
+  }
+};
+
+export const upsertTemplateSettings = async (req, res) => {
+  console.log("Upserting template settings...");
+  try {
+    const { clinicId } = req.query;
+    const { templateSettings } = req.body;
+
+    const doctorId = req.user.id;
+
+    if (!templateSettings) {
+      return res.status(400).json({
+        success: false,
+        message: "templateSettings is required",
+      });
+    }
+
+    const updatedTemplate = await PrescriptionTemplates.findOneAndUpdate(
+      { clinicId, doctorId },
+      { templateSettings },
+      { new: true }
+    );
+
+    if (!updatedTemplate) {
+      return res.status(404).json({
+        success: false,
+        message: "Template not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: updatedTemplate,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error updating template settings",
+      error: error.message,
+    });
+  }
+};

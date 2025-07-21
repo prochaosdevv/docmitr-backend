@@ -3295,13 +3295,7 @@ export const deletePatientSymptoms = async (req, res) => {
 
 export const upsertPrescriptionItem = async (req, res) => {
   try {
-    const {
-      appointmentId,
-      medicineId,
-      doses = [],
-      templateId,
-      patientId,
-    } = req.body;
+    const { appointmentId, medicineId, doses = [], templateId } = req.body;
 
     if (
       !appointmentId ||
@@ -3363,7 +3357,6 @@ export const upsertPrescriptionItem = async (req, res) => {
         medicineId,
         doctorId: req.user.id,
         doses,
-        patientId: patientId || null, // Optional field
       });
 
       return res.status(201).json({
@@ -4145,25 +4138,27 @@ export const upsetAllergy = async (req, res) => {
   try {
     const { allergyName, patientId } = req.body;
 
-    const isAllergyExists = await PrescriptionItem.findOne({
+    const isAllergyExists = await Appoinment.findOne({
       patientId: patientId,
       allergies: { $in: [allergyName] }, // ✅ correct usage
     });
 
     if (isAllergyExists) {
       return res.status(200).json({
+        success: false,
         message: "Allergy already exists. Choose a different one.",
       });
     }
 
     // Add the allergy to the prescription item
-    await PrescriptionItem.findOneAndUpdate(
+    await Appoinment.findOneAndUpdate(
       { patientId: patientId },
       { $addToSet: { allergies: allergyName } },
       { new: true, upsert: true }
     );
 
     return res.status(200).json({
+      success: true,
       message: "Allergy added successfully.",
     });
   } catch (error) {
@@ -4186,11 +4181,11 @@ export const getAllergiesByPatientId = async (req, res) => {
       });
     }
 
-    const prescriptionItem = await PrescriptionItem.findOne({
+    const appointment = await Appoinment.findOne({
       patientId: patientId,
     });
 
-    if (!prescriptionItem || !prescriptionItem.allergies) {
+    if (!appointment || !appointment.allergies) {
       return res.status(404).json({
         success: false,
         message: "No allergies found for this patient.",
@@ -4199,7 +4194,7 @@ export const getAllergiesByPatientId = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      allergies: prescriptionItem.allergies,
+      allergies: appointment.allergies,
     });
   } catch (error) {
     console.error("Error fetching allergies by patientId:", error);

@@ -130,6 +130,16 @@ const appointmentSchema = new mongoose.Schema(
       default: null,
     },
     clinicNotes: { type: String },
+    allergies: [
+      {
+        type: String,
+      },
+    ],
+    patientId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Patient",
+      default: null,
+    },
   },
   { timestamps: true }
 );

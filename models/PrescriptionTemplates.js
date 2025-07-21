@@ -20,6 +20,10 @@ const prescriptionTemplateSchema = new mongoose.Schema({
     required: true,
     default: {},
   },
+  templateSettings: {
+    type: Object,
+    default: {},
+  },
 });
 
 prescriptionTemplateSchema.index(
