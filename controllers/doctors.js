@@ -58,6 +58,25 @@ export const getLoggedInDoctor = async (req, res) => {
   }
 };
 
+export const getDoctorsExceptLoggedIn = async (req, res) => {
+  try {
+    const doctorId = req.user.id;
+
+    const doctors = await Doctor.find({ _id: { $ne: doctorId } })
+      .select(
+        "firstName lastName specialization subscriptionType address city state zipCode active"
+      )
+      .lean();
+
+    res.status(200).json({
+      data: doctors,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 export const createDoctor = async (req, res) => {
   try {
     const {

@@ -10,7 +10,6 @@ const medicineSchema = new mongoose.Schema(
     categoryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "MedicineCategory", // Reference to the MedicineCategory model
-      required: true,
     },
     categoryName: {
       type: String,
@@ -29,7 +28,6 @@ const medicineSchema = new mongoose.Schema(
     compositionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Composition", // Reference to the Composition model
-      required: true,
     },
     doctorId: {
       type: mongoose.Schema.Types.ObjectId,

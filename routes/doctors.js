@@ -9,6 +9,7 @@ import {
   getDoctorPatients,
   toggleDoctorStatus,
   getLoggedInDoctor,
+  getDoctorsExceptLoggedIn,
 } from "../controllers/doctors.js";
 import { loginDoctor } from "../controllers/auth.js";
 import { isAdmin } from "../middleware/auth.js";
@@ -17,6 +18,7 @@ const router = express.Router();
 
 router.get("/", getDoctors);
 router.get("/get-me", getLoggedInDoctor);
+router.get("/except-me", getDoctorsExceptLoggedIn);
 router.get("/:id", getDoctorById);
 router.post("/", isAdmin, createDoctor);
 router.put("/:id", isAdmin, updateDoctor);

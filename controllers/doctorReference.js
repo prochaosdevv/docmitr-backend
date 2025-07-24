@@ -3,9 +3,15 @@ import DoctorReference from "../models/DoctorReference.js";
 // Create
 export const createDoctorReference = async (req, res) => {
   try {
-    const { name, specialization, mobile, email } = req.body;
+    const { name, specialization, mobile, email, type } = req.body;
 
-    const newRef = new DoctorReference({ name, specialization, mobile, email });
+    const newRef = new DoctorReference({
+      name,
+      specialization,
+      mobile,
+      email,
+      type,
+    });
     const savedRef = await newRef.save();
 
     res.status(201).json({ success: true, data: savedRef });
@@ -19,7 +25,11 @@ export const createDoctorReference = async (req, res) => {
 // Read all
 export const getAllDoctorReferences = async (req, res) => {
   try {
-    const references = await DoctorReference.find().sort({ createdAt: -1 });
+    const { type } = req.query;
+
+    const references = await DoctorReference.find(type ? { type } : {}).sort({
+      createdAt: -1,
+    });
     res.status(200).json({ success: true, data: references });
   } catch (err) {
     res
@@ -32,11 +42,11 @@ export const getAllDoctorReferences = async (req, res) => {
 export const updateDoctorReference = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, specialization, mobile, email } = req.body;
+    const { name, specialization, mobile, email, type } = req.body;
 
     const updated = await DoctorReference.findByIdAndUpdate(
       id,
-      { name, specialization, mobile, email },
+      { name, specialization, mobile, email, type },
       { new: true }
     );
 

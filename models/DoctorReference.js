@@ -20,6 +20,10 @@ const doctorReferenceSchema = new mongoose.Schema(
       required: false,
       trim: true,
     },
+    type: {
+      type: String,
+      required: true,
+    },
   },
   {
     timestamps: true,

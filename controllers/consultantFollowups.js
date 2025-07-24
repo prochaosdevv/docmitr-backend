@@ -1997,6 +1997,8 @@ export const createMedicineByDoctor = async (req, res) => {
     const { name, categoryId, categoryName, compositionID, compositionName } =
       req.body;
 
+    console.log("Creating medicine by doctor:", req.body);
+
     const doctorId = req.user.id;
 
     if (
@@ -2070,23 +2072,137 @@ export const createMedicineByDoctor = async (req, res) => {
   }
 };
 
+export const updateMedicineByDoctor = async (req, res) => {
+  try {
+    const medicineId = req.params.id; // Get medicineId from request params
+    const { name, categoryId, categoryName, compositionID, compositionName } =
+      req.body;
+
+    const doctorId = req.user.id;
+
+    if (!medicineId || !mongoose.Types.ObjectId.isValid(medicineId)) {
+      return res.status(400).json({ message: "Valid medicineId is required." });
+    }
+
+    if (
+      !name ||
+      (!categoryId && !categoryName) ||
+      (!compositionID && !compositionName)
+    ) {
+      return res
+        .status(400)
+        .json({ message: "All required fields must be provided." });
+    }
+
+    let category;
+    if (categoryId) {
+      category = await MedicineCategory.findById(categoryId);
+      if (!category) {
+        return res.status(404).json({ message: "Category not found by ID." });
+      }
+    } else {
+      category = await MedicineCategory.findOne({
+        name: categoryName.trim(),
+        doctorId,
+      });
+      if (!category) {
+        category = await MedicineCategory.create({
+          name: categoryName.trim(),
+          doctorId,
+          isAdmin: false,
+        });
+      }
+    }
+
+    let composition;
+    if (compositionID) {
+      composition = await Composition.findById(compositionID);
+      if (!composition) {
+        return res
+          .status(404)
+          .json({ message: "Composition not found by ID." });
+      }
+    } else {
+      composition = await Composition.findOne({
+        compositionName: compositionName.trim(),
+        doctorId,
+      });
+      if (!composition) {
+        composition = await Composition.create({
+          compositionName: compositionName.trim(),
+          doctorId,
+          isAdmin: false,
+        });
+      }
+    }
+
+    const updatedMedicine = await Medicine.findByIdAndUpdate(
+      medicineId,
+      {
+        name,
+        categoryId: category._id,
+        categoryName: category.name,
+        compositionId: composition._id,
+        compositionName: composition.compositionName,
+        doctorId,
+        isAdmin: false,
+      },
+      { new: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      updatedMedicine,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const deleteMedicine = async (req, res) => {
+  try {
+    const medicineId = req.params.id; // Get medicineId from request params
+
+    if (!medicineId || !mongoose.Types.ObjectId.isValid(medicineId)) {
+      return res.status(400).json({ message: "Valid medicineId is required." });
+    }
+
+    // Check if the medicine exists
+    const medicine = await Medicine.findById(medicineId);
+    if (!medicine) {
+      return res.status(404).json({ message: "Medicine not found." });
+    }
+
+    await Medicine.findByIdAndDelete(medicineId);
+    res.status(200).json({ message: "Medicine deleted successfully." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const getPaginatedMedicines = async (req, res) => {
   try {
-    const selectedCount = parseInt(req.query.selectedCount || "0");
-
     // Authenticated user
     const { id } = req.user;
+
+    const selectedCount = parseInt(req.query.selectedCount || "0");
 
     const filter = {
       $or: [{ isAdmin: true }, { doctorId: id }],
     };
 
-    const allMedicines = await Medicine.find(filter).sort({ _id: 1 }).lean();
+    if (!!selectedCount) {
+      const allMedicines = await Medicine.find(filter).sort({ _id: 1 }).lean();
 
-    const limit = 8 + selectedCount;
-    const visibleMedicines = allMedicines.slice(0, limit);
+      const limit = 8 + selectedCount;
+      const visibleMedicines = allMedicines.slice(0, limit);
 
-    res.status(200).json({ medicines: visibleMedicines });
+      res.status(200).json({ medicines: visibleMedicines });
+    } else {
+      const allMedicines = await Medicine.find(filter).sort({ _id: 1 }).lean();
+
+      res.status(200).json({ medicines: allMedicines });
+    }
   } catch (err) {
     console.error("Error fetching medicines:", err);
     res.status(500).json({ message: "Failed to fetch medicines" });

@@ -36,6 +36,7 @@ import {
   deleteFinding,
   deleteFindingsCategory,
   deleteInvestigationPanel,
+  deleteMedicine,
   deletePatientSymptoms,
   deleteSymptom,
   deleteSymptomCategory,
@@ -72,6 +73,7 @@ import {
   searchMedicines,
   searchProcedures,
   searchSymptoms,
+  updateMedicineByDoctor,
   upsertPatientInvestigation,
   upsertPrescriptionItem,
   upsetAllergy,
@@ -172,6 +174,8 @@ router.post("/investigations/properties-save", upsertPatientInvestigation);
 // medicines
 router.post("/medicines/admin/create", createMedicineByAdmin);
 router.post("/medicines/doctor/create", createMedicineByDoctor);
+router.put("/medicines/doctor/update/:id", updateMedicineByDoctor);
+router.delete("/medicines/doctor/delete/:id", deleteMedicine);
 router.get("/medicines", getPaginatedMedicines); // Assuming this should be a different endpoint
 router.get("/medicines/search", searchMedicines);
 router.get("/medicines/categories/search", allMedicineCategories);
