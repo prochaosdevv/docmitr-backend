@@ -12,11 +12,13 @@ import {
   updateProcedureDate,
   updateNotes,
   updateAppointmentPurposeofVisit,
+  getAppointmentDataById,
 } from "../controllers/appointments.js";
 
 const router = express.Router();
 
 router.get("/", getAppointments);
+router.get("/appointment-data/:id", getAppointmentDataById);
 router.post("/", createAppointment);
 router.put("/:id", updateAppointment);
 router.put("/:id/purpose-of-visit", updateAppointmentPurposeofVisit);

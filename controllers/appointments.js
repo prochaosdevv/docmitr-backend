@@ -8,6 +8,19 @@ import {
   isAddressComplete,
   parseDateTimeString,
 } from "../utils/helper-functions.js";
+import PatientSymptoms from "../models/PatientSymptoms.js";
+import { PrescriptionItem } from "../models/PatientMedicine.js";
+import PatientInvestigation from "../models/PatientInvestigation.js";
+import Symptoms from "../models/Symptoms.js";
+import Findings from "../models/Findings.js";
+import Diagnosis from "../models/Diagnosis.js";
+import Medicine from "../models/Medicine.js";
+import Investigation from "../models/Investigation.js";
+import Instructions from "../models/Instructions.js";
+import Procedures from "../models/Procedures.js";
+import SymptomsProperties from "../models/SymptomsProperties.js";
+import FindingsProperties from "../models/FindingsProperties.js";
+import DiagnosisProperties from "../models/DiagnosisProperties.js";
 
 export const getAppointments = async (req, res) => {
   try {
@@ -548,5 +561,268 @@ export const deleteAppointment = async (req, res) => {
   } catch (error) {
     console.error("Error deleting appointment:", error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getAppointmentDataById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Appointment ID is required",
+      });
+    }
+
+    const appointment = await Appoinment.findOne({
+      appointmentId: id,
+    });
+
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: "Appointment not found",
+      });
+    }
+
+    const appointmentId = appointment._id;
+
+    // Fetch all relevant patient data by appointmentId
+    const patientItems = await PatientSymptoms.find({ appointmentId });
+    const medicineItems = await PrescriptionItem.find({ appointmentId });
+    const patientInvestigation = await PatientInvestigation.findOne({
+      appointmentId,
+    });
+
+    // If no data found
+    if (
+      (!patientItems || patientItems.length === 0) &&
+      (!medicineItems || medicineItems.length === 0) &&
+      !patientInvestigation
+    ) {
+      return res.status(200).json({
+        success: false,
+        message: "No data found for this appointment",
+        data: null,
+      });
+    }
+
+    // Collect IDs for lookups
+    const symptomIds = patientItems.map((item) => item.symptomId);
+    const medicineIds = medicineItems.map((item) => item.medicineId);
+    const investigationIds = patientInvestigation?.investigations || [];
+    const instructionIds = patientInvestigation?.instructions || [];
+    const procedureIds = patientInvestigation?.procedures || [];
+
+    // Fetch from reference collections
+    const [allSymptoms, allFindings, allDiagnosis, allMedicines] =
+      await Promise.all([
+        Symptoms.find({ _id: { $in: symptomIds } }),
+        Findings.find({ _id: { $in: symptomIds } }),
+        Diagnosis.find({ _id: { $in: symptomIds } }),
+        Medicine.find({ _id: { $in: medicineIds } }),
+      ]);
+
+    const [allInvestigations, allInstructions, allProcedures] =
+      await Promise.all([
+        Investigation.find({ _id: { $in: investigationIds } }),
+        Instructions.find({ _id: { $in: instructionIds } }),
+        Procedures.find({ _id: { $in: procedureIds } }),
+      ]);
+
+    // Map data for quick access
+    const mapById = (items) => {
+      const map = {};
+      items.forEach((item) => {
+        map[item._id.toString()] = item.toObject();
+      });
+      return map;
+    };
+
+    const symptomsMap = mapById(allSymptoms);
+    const findingsMap = mapById(allFindings);
+    const diagnosisMap = mapById(allDiagnosis);
+    const medicinesMap = mapById(allMedicines);
+    const investigationsMap = mapById(allInvestigations);
+    const instructionsMap = mapById(allInstructions);
+    const proceduresMap = mapById(allProcedures);
+
+    // Final response structure
+    const result = {
+      appointmentId,
+      symptoms: [],
+      medicines: [],
+      investigations: [],
+      instructions: [],
+      procedures: [],
+    };
+
+    // SYMPTOMS / FINDINGS / DIAGNOSIS
+    for (const item of patientItems) {
+      const symptomId = item.symptomId.toString();
+      let type = "unknown";
+      let data = null;
+
+      if (symptomsMap[symptomId]) {
+        type = "symptom";
+        data = symptomsMap[symptomId];
+      } else if (findingsMap[symptomId]) {
+        type = "finding";
+        data = findingsMap[symptomId];
+      } else if (diagnosisMap[symptomId]) {
+        type = "diagnosis";
+        data = diagnosisMap[symptomId];
+      }
+
+      if (!data) continue;
+
+      const obj = {
+        symptomId: item.symptomId,
+        name: data.name || "Unknown",
+        note: item.note || null,
+        type,
+        details: [],
+      };
+
+      if (type === "diagnosis") {
+        obj.location = item.location || null;
+        obj.description = item.description || null;
+      } else {
+        obj.since = item.since || null;
+        obj.severity = item.severity || null;
+      }
+
+      // Fetch properties if needed
+      let propertiesDoc = null;
+      if (type === "symptom") {
+        propertiesDoc = await SymptomsProperties.findOne({
+          symptopId: item.symptomId,
+        });
+      } else if (type === "finding") {
+        propertiesDoc = await FindingsProperties.findOne({
+          findingsId: item.symptomId,
+        });
+      } else if (type === "diagnosis") {
+        propertiesDoc = await DiagnosisProperties.findOne({
+          diagnosisId: item.symptomId,
+        });
+      }
+
+      if (item.details?.length > 0) {
+        for (const detail of item.details) {
+          const detailObj = {
+            categoryId: detail.detailId,
+            categoryName: "",
+            properties: [],
+          };
+
+          const matchedDetail = propertiesDoc?.details?.find(
+            (d) => d._id.toString() === detail.detailId.toString()
+          );
+
+          if (matchedDetail) {
+            detailObj.categoryName = matchedDetail.categoryName || "";
+            for (const prop of detail.properties || []) {
+              const matchedProp = matchedDetail.categoryProperties?.find(
+                (p) => p._id.toString() === prop.propertyId.toString()
+              );
+              detailObj.properties.push({
+                propertyId: prop.propertyId,
+                propertyName: matchedProp?.propertyName || "",
+                propertyValue: prop.propertyValue,
+              });
+            }
+          }
+
+          obj.details.push(detailObj);
+        }
+      }
+
+      result.symptoms.push(obj);
+    }
+
+    // MEDICINES
+    for (const item of medicineItems) {
+      const medicineId = item.medicineId.toString();
+      const data = medicinesMap[medicineId];
+
+      if (!data) continue;
+
+      const medicineObj = {
+        medicineId,
+        name: data.name || "Unknown Medicine",
+        compositionName: data.compositionName || "",
+        doses: [],
+      };
+
+      for (const dose of item.doses || []) {
+        medicineObj.doses.push({
+          doseNumber: dose.doseNumber,
+          quantity: dose.quantity,
+          dosage: dose.dosage,
+          timing: dose.timing,
+          duration: dose.duration,
+          note: dose.note || "",
+          prescriptionType: dose.prescriptionType || "",
+        });
+      }
+
+      result.medicines.push(medicineObj);
+    }
+
+    // INVESTIGATIONS
+    result.investigations = investigationIds
+      .map((id) => {
+        const data = investigationsMap[id.toString()];
+        return data
+          ? {
+              _id: id,
+              name: data.name || "",
+              description: data.description || "",
+              category: data.category || "",
+            }
+          : null;
+      })
+      .filter(Boolean);
+
+    // INSTRUCTIONS
+    result.instructions = instructionIds
+      .map((id) => {
+        const data = instructionsMap[id.toString()];
+        return data
+          ? {
+              _id: id,
+              name: data.name || "",
+              description: data.description || "",
+            }
+          : null;
+      })
+      .filter(Boolean);
+
+    // PROCEDURES
+    result.procedures = procedureIds
+      .map((id) => {
+        const data = proceduresMap[id.toString()];
+        return data
+          ? {
+              _id: id,
+              name: data.name || "",
+              description: data.description || "",
+              duration: data.duration || "",
+            }
+          : null;
+      })
+      .filter(Boolean);
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error in getAppointmentDataById:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error.message });
   }
 };
