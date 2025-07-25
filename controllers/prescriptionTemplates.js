@@ -16,7 +16,11 @@ export const createTemplate = async (req, res) => {
       // Update existing template
       const updatedTemplate = await PrescriptionTemplates.findOneAndUpdate(
         { clinicId, doctorId },
-        { templateId, config },
+        {
+          templateId,
+          config,
+          templateSettings: existingTemplate.templateSettings || {},
+        },
         { new: true }
       );
 
@@ -33,6 +37,7 @@ export const createTemplate = async (req, res) => {
       templateId,
       doctorId,
       config,
+      templateSettings: {},
     });
 
     res.status(201).json({
@@ -88,9 +93,10 @@ export const getTemplateSettings = async (req, res) => {
     });
 
     if (!template) {
-      return res.status(404).json({
+      return res.status(200).json({
         success: false,
         message: "Template not found",
+        data: {},
       });
     }
 
@@ -108,7 +114,6 @@ export const getTemplateSettings = async (req, res) => {
 };
 
 export const upsertTemplateSettings = async (req, res) => {
-  console.log("Upserting template settings...");
   try {
     const { clinicId } = req.query;
     const { templateSettings } = req.body;
@@ -131,7 +136,8 @@ export const upsertTemplateSettings = async (req, res) => {
     if (!updatedTemplate) {
       return res.status(404).json({
         success: false,
-        message: "Template not found",
+        message:
+          "Template not setup for this clinic. Please setup a template first.",
       });
     }
 

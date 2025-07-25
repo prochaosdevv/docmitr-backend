@@ -290,6 +290,26 @@ export const updateCheckInCheckOut = async (req, res) => {
       });
     }
 
+    // check if already checked in or checked out
+    const existingAppointment = await Appoinment.findOne({
+      appointmentId: appointmentId,
+    });
+
+    if (existingAppointment.checkInTime !== null && checkInTime !== undefined) {
+      return res.status(200).json({
+        message: "Appointment already checked in",
+      });
+    }
+
+    if (
+      existingAppointment.checkOutTime !== null &&
+      checkOutTime !== undefined
+    ) {
+      return res.status(200).json({
+        message: "Appointment already checked out",
+      });
+    }
+
     const updateFields = {};
     if (checkInTime !== undefined) updateFields.checkInTime = checkInTime;
     if (checkOutTime !== undefined) updateFields.checkOutTime = checkOutTime;
