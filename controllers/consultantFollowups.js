@@ -2185,16 +2185,18 @@ export const getPaginatedMedicines = async (req, res) => {
     // Authenticated user
     const { id } = req.user;
 
+    console.log(req.query.selectedCount, "fdfd");
+
     const selectedCount = parseInt(req.query.selectedCount || "0");
 
     const filter = {
       $or: [{ isAdmin: true }, { doctorId: id }],
     };
 
-    if (!!selectedCount) {
+    if (selectedCount >= 0) {
       const allMedicines = await Medicine.find(filter).sort({ _id: 1 }).lean();
 
-      const limit = 8 + selectedCount;
+      const limit = 4 + selectedCount;
       const visibleMedicines = allMedicines.slice(0, limit);
 
       res.status(200).json({ medicines: visibleMedicines });

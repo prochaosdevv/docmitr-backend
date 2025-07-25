@@ -11,6 +11,19 @@ const vitalMasterSchema = new mongoose.Schema(
       type: String,
       default: null, // Optional field for unit type
     },
+    isAdmin: {
+      type: Boolean,
+      default: false, // Indicates if the vital is admin-defined
+    },
+    doctorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Doctor",
+      required: true, // Reference to the Doctor schema
+    },
+    sortOrder: {
+      type: Number,
+      default: 0, // Default sort order for displaying vitals
+    },
   },
   {
     timestamps: true, // Automatically manage createdAt and updatedAt fields

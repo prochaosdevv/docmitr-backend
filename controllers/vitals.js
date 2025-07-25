@@ -130,10 +130,109 @@ export const deleteVital = async (req, res) => {
 
 export const getAllMasterVitals = async (req, res) => {
   try {
-    const vitals = await VitalMaster.find().sort({ sortOrder: 1 }); // Sort by sortOrder ascending
+    let filter = {
+      $or: [{ isAdmin: true }, { doctorId: req.user.id }],
+    };
+
+    const vitals = await VitalMaster.find(filter).sort({ sortOrder: 1 }); // Sort by sortOrder ascending
 
     res.json(vitals);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+// master
+
+export const createMasterVital = async (req, res) => {
+  const { vitalName, unitType } = req.body;
+
+  try {
+    if (!vitalName || !unitType) {
+      return res
+        .status(400)
+        .json({ error: "Vital name and unit type are required." });
+    }
+
+    const user = req.user;
+
+    const findLastSortOrderNumber = await VitalMaster.find({});
+
+    let sortOrder = 0;
+    if (findLastSortOrderNumber.length > 0) {
+      sortOrder =
+        findLastSortOrderNumber[findLastSortOrderNumber.length - 1].sortOrder +
+        1;
+    }
+
+    const newVital = new VitalMaster({
+      vitalName,
+      unitType,
+      isAdmin: user.role === "admin",
+      doctorId: user.id, // Associate with the logged-in doctor
+      sortOrder, // Set the sort order
+    });
+    await newVital.save();
+    res.status(201).json({ success: true, vital: newVital });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getMasterVitalByDoctor = async (req, res) => {
+  try {
+    const doctorId = req.user.id;
+
+    const vitals = await VitalMaster.find({ doctorId }).sort({ createdAt: -1 });
+
+    if (!vitals || vitals.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    res.json(vitals);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+export const updateMasterVital = async (req, res) => {
+  const { id } = req.params;
+  const { vitalName, unitType } = req.body;
+
+  try {
+    if (!vitalName || !unitType) {
+      return res
+        .status(400)
+        .json({ error: "Vital name and unit type are required." });
+    }
+
+    const updatedVital = await VitalMaster.findByIdAndUpdate(
+      id,
+      { vitalName, unitType },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedVital) {
+      return res.status(404).json({ error: "Vital not found." });
+    }
+
+    res.json({ success: true, vital: updatedVital });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const deleteMasterVital = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const deletedVital = await VitalMaster.findByIdAndDelete(id);
+
+    if (!deletedVital) {
+      return res.status(404).json({ error: "Vital not found." });
+    }
+
+    res.json({ success: true, message: "Vital deleted successfully." });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
