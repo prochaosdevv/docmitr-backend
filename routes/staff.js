@@ -11,7 +11,7 @@ import { authenticateToken } from "../middleware/auth.js";
 
 const router = express.Router();
 
-router.get("/", getAllStaff);
+router.get("/", authenticateToken, getAllStaff);
 router.get("/get-me", authenticateToken, getLoggedInStaff);
 router.get("/:id", getStaffById);
 router.post("/", authenticateToken, createStaff);

@@ -77,7 +77,11 @@ export const createStaff = async (req, res) => {
 // Get all staff
 export const getAllStaff = async (req, res) => {
   try {
-    const staff = await Staff.find().populate("clinic", ["name"]);
+    const doctorId = req.user.id;
+    const staff = await Staff.find(doctorId ? { doctorId } : {}).populate(
+      "clinic",
+      ["name"]
+    );
     res.json(staff);
   } catch (error) {
     res.status(500).json({ error: error.message });

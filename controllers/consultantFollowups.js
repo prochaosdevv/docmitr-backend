@@ -2185,15 +2185,16 @@ export const getPaginatedMedicines = async (req, res) => {
     // Authenticated user
     const { id } = req.user;
 
-    console.log(req.query.selectedCount, "fdfd");
-
-    const selectedCount = parseInt(req.query.selectedCount || "0");
+    const selectedCount = req.query.selectedCount
+      ? parseInt(req.query.selectedCount || "0")
+      : null;
 
     const filter = {
       $or: [{ isAdmin: true }, { doctorId: id }],
     };
 
-    if (selectedCount >= 0) {
+    if (selectedCount !== null && selectedCount >= 0) {
+      console.log("here");
       const allMedicines = await Medicine.find(filter).sort({ _id: 1 }).lean();
 
       const limit = 4 + selectedCount;
@@ -2201,6 +2202,7 @@ export const getPaginatedMedicines = async (req, res) => {
 
       res.status(200).json({ medicines: visibleMedicines });
     } else {
+      console.log("here2222");
       const allMedicines = await Medicine.find(filter).sort({ _id: 1 }).lean();
 
       res.status(200).json({ medicines: allMedicines });
