@@ -20,6 +20,40 @@ export const getDoctors = async (req, res) => {
   }
 };
 
+export const getTotalDoctorsCount = async (req, res) => {
+  try {
+    // Total doctors
+    const totalCount = await Doctor.countDocuments();
+
+    // Get start and end of last month
+    const now = new Date();
+    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    // Doctors added in the last month
+    const lastMonthCount = await Doctor.countDocuments({
+      createdAt: {
+        $gte: startOfLastMonth,
+        $lt: startOfThisMonth,
+      },
+    });
+
+    // find recent doctors added and sort by latest
+    const recentDoctors = await Doctor.find({})
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    res.status(200).json({
+      totalCount,
+      lastMonthCount,
+      recentDoctors,
+    });
+  } catch (error) {
+    console.error("Error fetching doctor stats:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 export const getDoctorById = async (req, res) => {
   try {
     const doctor = await Doctor.findById(req.params.id).lean();

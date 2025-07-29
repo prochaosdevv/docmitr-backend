@@ -595,9 +595,7 @@ export const getAppointmentDataById = async (req, res) => {
       });
     }
 
-    const appointment = await Appoinment.findOne({
-      appointmentId: id,
-    });
+    const appointment = await Appoinment.findOne({ appointmentId: id });
 
     if (!appointment) {
       return res.status(404).json({
@@ -608,14 +606,12 @@ export const getAppointmentDataById = async (req, res) => {
 
     const appointmentId = appointment._id;
 
-    // Fetch all relevant patient data by appointmentId
     const patientItems = await PatientSymptoms.find({ appointmentId });
     const medicineItems = await PrescriptionItem.find({ appointmentId });
     const patientInvestigation = await PatientInvestigation.findOne({
       appointmentId,
     });
 
-    // If no data found
     if (
       (!patientItems || patientItems.length === 0) &&
       (!medicineItems || medicineItems.length === 0) &&
@@ -628,14 +624,12 @@ export const getAppointmentDataById = async (req, res) => {
       });
     }
 
-    // Collect IDs for lookups
     const symptomIds = patientItems.map((item) => item.symptomId);
     const medicineIds = medicineItems.map((item) => item.medicineId);
     const investigationIds = patientInvestigation?.investigations || [];
     const instructionIds = patientInvestigation?.instructions || [];
     const procedureIds = patientInvestigation?.procedures || [];
 
-    // Fetch from reference collections
     const [allSymptoms, allFindings, allDiagnosis, allMedicines] =
       await Promise.all([
         Symptoms.find({ _id: { $in: symptomIds } }),
@@ -651,7 +645,6 @@ export const getAppointmentDataById = async (req, res) => {
         Procedures.find({ _id: { $in: procedureIds } }),
       ]);
 
-    // Map data for quick access
     const mapById = (items) => {
       const map = {};
       items.forEach((item) => {
@@ -668,17 +661,17 @@ export const getAppointmentDataById = async (req, res) => {
     const instructionsMap = mapById(allInstructions);
     const proceduresMap = mapById(allProcedures);
 
-    // Final response structure
     const result = {
       appointmentId,
       symptoms: [],
+      findings: [],
+      diagnosis: [],
       medicines: [],
       investigations: [],
       instructions: [],
       procedures: [],
     };
 
-    // SYMPTOMS / FINDINGS / DIAGNOSIS
     for (const item of patientItems) {
       const symptomId = item.symptomId.toString();
       let type = "unknown";
@@ -713,7 +706,6 @@ export const getAppointmentDataById = async (req, res) => {
         obj.severity = item.severity || null;
       }
 
-      // Fetch properties if needed
       let propertiesDoc = null;
       if (type === "symptom") {
         propertiesDoc = await SymptomsProperties.findOne({
@@ -759,14 +751,20 @@ export const getAppointmentDataById = async (req, res) => {
         }
       }
 
-      result.symptoms.push(obj);
+      // Push to correct array
+      if (type === "symptom") {
+        result.symptoms.push(obj);
+      } else if (type === "finding") {
+        result.findings.push(obj);
+      } else if (type === "diagnosis") {
+        result.diagnosis.push(obj);
+      }
     }
 
     // MEDICINES
     for (const item of medicineItems) {
       const medicineId = item.medicineId.toString();
       const data = medicinesMap[medicineId];
-
       if (!data) continue;
 
       const medicineObj = {
@@ -841,8 +839,10 @@ export const getAppointmentDataById = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in getAppointmentDataById:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Server error", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
