@@ -3,13 +3,15 @@ import { welcomeEmail } from "../emails.js";
 import Doctor from "../models/Doctor.js";
 import bcrypt from "bcryptjs";
 import { sendEmail } from "../utils/send-mail.js";
+import { generateInvoice } from "../utils/invoice.js";
 
 export const getDoctors = async (req, res) => {
   try {
     const result = await Doctor.find({})
       .select(
-        "firstName lastName specialization subscriptionType address city state zipCode active"
+        "firstName lastName specialization subscription address city state zipCode active"
       )
+      .populate("subscription", "planName price startDate endDate createdAt")
       .lean();
     res.status(200).json({
       data: result,
@@ -122,7 +124,7 @@ export const createDoctor = async (req, res) => {
       bio,
       consultationFee,
       regNo,
-      subscriptionType,
+      subscription,
       address,
       city,
       state,
@@ -158,7 +160,7 @@ export const createDoctor = async (req, res) => {
       bio,
       consultationFee,
       regNo,
-      subscriptionType,
+      subscription,
       address,
       city,
       state,
@@ -179,6 +181,16 @@ export const createDoctor = async (req, res) => {
       console.log("Email sent successfully:", res1);
     }
 
+    // generate a invoice
+
+    try {
+      await generateInvoice({
+        doctorId: newDoctor._id,
+        subscription, // passed from request
+      });
+    } catch (err) {
+      console.error("Failed to generate invoice:", err.message);
+    }
     // Optionally return the plain password (e.g. to send in email)
     res.status(201).json({
       doctor: newDoctor,

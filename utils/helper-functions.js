@@ -108,3 +108,7 @@ export const isAddressComplete = (address) => {
 export const parseDateTimeString = (dateTimeStr) => {
   return new Date(dateTimeStr);
 };
+
+export const generateInvoiceId = () => {
+  return `INV-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+};

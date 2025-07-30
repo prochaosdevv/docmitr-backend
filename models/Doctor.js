@@ -46,10 +46,9 @@ const doctorSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-    subscriptionType: {
-      type: String,
-      enum: ["Basic", "Whitelabel"],
-      default: "Basic",
+    subscription: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Subscription",
     },
     active: {
       type: Boolean,

@@ -30,6 +30,7 @@ import { prescriptionTemplateRoutes } from "./routes/prescriptionRoutes.js";
 import { otherReferenceRoutes } from "./routes/otherReferences.js";
 import { labRouter } from "./routes/lab.js";
 import { subscriptionRoutes } from "./routes/subscription.js";
+import { invoiceRoutes } from "./routes/invoice.js";
 
 // Load environment variables
 dotenv.config();
@@ -76,6 +77,7 @@ app.use("/docmitr/api/templates", templateRoutes);
 app.use("/docmitr/api/drugs", drugsRouter);
 app.use("/docmitr/api/headouts", headoutRouter);
 app.use("/docmitr/api/sms", smsRouter);
+app.use("/docmitr/api/invoices", invoiceRoutes);
 app.use("/docmitr/api/labs", labRouter);
 app.use("/docmitr/api/reference", doctorReferenceRoutes);
 app.use("/docmitr/api/reference/other", otherReferenceRoutes);

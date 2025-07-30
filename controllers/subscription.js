@@ -28,9 +28,29 @@ export const createSubscription = async (req, res) => {
 // Get all subscriptions
 export const getAllSubscriptions = async (req, res) => {
   try {
-    const subscriptions = await Subscriptions.find().sort({ createdAt: -1 });
+    const { forDoctors } = req.query;
+
+    console.log("Fetching subscriptions with filter:", typeof forDoctors);
+
+    let filter = {};
+
+    if (forDoctors === "true") {
+      const today = new Date();
+
+      // Only include active (non-expired) subscriptions
+      filter = {
+        startDate: { $lte: today },
+        endDate: { $gte: today },
+      };
+    }
+
+    const subscriptions = await Subscriptions.find(filter).sort({
+      createdAt: -1,
+    });
+
     res.status(200).json(subscriptions);
   } catch (error) {
+    console.error("Error fetching subscriptions:", error);
     res.status(500).json({ message: "Failed to fetch subscriptions" });
   }
 };

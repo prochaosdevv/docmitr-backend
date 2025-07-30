@@ -1997,8 +1997,6 @@ export const createMedicineByDoctor = async (req, res) => {
     const { name, categoryId, categoryName, compositionID, compositionName } =
       req.body;
 
-    console.log("Creating medicine by doctor:", req.body);
-
     const doctorId = req.user.id;
 
     if (
