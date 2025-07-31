@@ -54,6 +54,16 @@ export const createSymptomByDoctor = async (req, res) => {
       return res.status(400).json({ message: "Symptom name is required" });
     }
 
+    // check if the particular symptom already exists in db
+
+    const existingSymptom = await Symptoms.findOne({ name });
+
+    if (existingSymptom) {
+      return res.status(400).json({
+        message: "Symptom already exists. Please use a different name.",
+      });
+    }
+
     const newSymptom = await Symptoms.create({
       name,
       doctorId,
@@ -565,6 +575,14 @@ export const createFindingsByDoctor = async (req, res) => {
       return res.status(400).json({ message: "Symptom name is required" });
     }
 
+    const existingFinding = await Findings.findOne({ name });
+
+    if (existingFinding) {
+      return res.status(400).json({
+        message: "Finding already exists. Please use a different name.",
+      });
+    }
+
     const newFinding = await Findings.create({
       name,
       doctorId,
@@ -1071,6 +1089,14 @@ export const createDiagnosisByDoctor = async (req, res) => {
 
     if (!name) {
       return res.status(400).json({ message: "Diagnosis name is required" });
+    }
+
+    const existingDiagnosis = await Diagnosis.findOne({ name });
+
+    if (existingDiagnosis) {
+      return res.status(400).json({
+        message: "Diagnosis already exists. Please use a different name.",
+      });
     }
 
     const newDiagnosis = await Diagnosis.create({
@@ -1582,6 +1608,15 @@ export const createInvestigationByDoctor = async (req, res) => {
         .status(400)
         .json({ message: "Investigation name is required" });
     }
+
+    const existingInvestigation = await Investigation.findOne({ name });
+
+    if (existingInvestigation) {
+      return res.status(400).json({
+        message: "Investigation already exists. Please use a different name.",
+      });
+    }
+
     const newInvestigation = await Investigation.create({
       name,
       doctorId,
@@ -1780,6 +1815,15 @@ export const createInstructionsByDoctor = async (req, res) => {
     if (!name) {
       return res.status(400).json({ message: "Instruction name is required" });
     }
+
+    const existingInvestigation = await Instructions.findOne({ name });
+
+    if (existingInvestigation) {
+      return res.status(400).json({
+        message: "Instruction already exists. Please use a different name.",
+      });
+    }
+
     const newInvestigation = await Instructions.create({
       name,
       doctorId,
@@ -1864,6 +1908,15 @@ export const createProcedureByDoctor = async (req, res) => {
     if (!name) {
       return res.status(400).json({ message: "Procedure name is required" });
     }
+
+    const existingInvestigation = await Procedures.findOne({ name });
+
+    if (existingInvestigation) {
+      return res.status(400).json({
+        message: "Procedure already exists. Please use a different name.",
+      });
+    }
+
     const newInvestigation = await Procedures.create({
       name,
       doctorId,
@@ -2007,6 +2060,17 @@ export const createMedicineByDoctor = async (req, res) => {
       return res
         .status(400)
         .json({ message: "All required fields must be provided." });
+    }
+
+    // check if same name medicine already exists in db
+
+    const existingMedicine = await Medicine.findOne({ name });
+
+    if (existingMedicine) {
+      return res.status(400).json({
+        message:
+          "Medicine with this name already exists. Please use a different name.",
+      });
     }
 
     let category;
