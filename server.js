@@ -31,6 +31,7 @@ import { otherReferenceRoutes } from "./routes/otherReferences.js";
 import { labRouter } from "./routes/lab.js";
 import { subscriptionRoutes } from "./routes/subscription.js";
 import { invoiceRoutes } from "./routes/invoice.js";
+import { adminSettingsRoutes } from "./routes/adminSettings.js";
 
 // Load environment variables
 dotenv.config();
@@ -82,6 +83,7 @@ app.use("/docmitr/api/labs", labRouter);
 app.use("/docmitr/api/reference", doctorReferenceRoutes);
 app.use("/docmitr/api/reference/other", otherReferenceRoutes);
 app.use("/docmitr/api/subscriptions", authenticateToken, subscriptionRoutes);
+app.use("/docmitr/api/settings", authenticateToken, adminSettingsRoutes);
 
 // Root route
 app.get("/docmitr", (req, res) => {

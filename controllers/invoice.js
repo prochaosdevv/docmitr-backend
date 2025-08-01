@@ -20,7 +20,10 @@ export const createInvoice = async (req, res) => {
 export const getAllInvoices = async (req, res) => {
   try {
     const invoices = await Invoice.find()
-      .populate("doctorId", "firstName lastName")
+      .populate(
+        "doctorId",
+        "firstName lastName address city state phone zipCode email"
+      )
       .populate("subscription", "planName price");
 
     res.status(200).json({
