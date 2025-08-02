@@ -13,12 +13,17 @@ import {
   updateNotes,
   updateAppointmentPurposeofVisit,
   getAppointmentDataById,
+  getFollowUpDataByPatientId,
 } from "../controllers/appointments.js";
 
 const router = express.Router();
 
 router.get("/", getAppointments);
 router.get("/appointment-data/:id", getAppointmentDataById);
+router.get(
+  "/appointment-data/followup/:patientId/:currentAppointmentId",
+  getFollowUpDataByPatientId
+);
 router.post("/", createAppointment);
 router.put("/:id", updateAppointment);
 router.put("/:id/purpose-of-visit", updateAppointmentPurposeofVisit);

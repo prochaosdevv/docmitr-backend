@@ -620,7 +620,9 @@ export const getAppointmentDataById = async (req, res) => {
       return res.status(200).json({
         success: false,
         message: "No data found for this appointment",
-        data: null,
+        data: {
+          appointmentId,
+        },
       });
     }
 
@@ -839,6 +841,263 @@ export const getAppointmentDataById = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in getAppointmentDataById:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+export const getFollowUpDataByPatientId = async (req, res) => {
+  try {
+    const { patientId, currentAppointmentId } = req.params;
+
+    if (!patientId || !mongoose.Types.ObjectId.isValid(patientId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid patientId is required.",
+      });
+    }
+
+    const pastAppointment = await Appoinment.findOne({
+      patientId,
+      _id: { $lt: currentAppointmentId }, // important: only older ones
+    })
+      .sort({ _id: -1 }) // latest one before current
+      .exec();
+
+    // Use the appointment._id for fetching associated data
+    const appointmentId = pastAppointment._id;
+
+    const [patientItems, medicineItems, patientInvestigation] =
+      await Promise.all([
+        PatientSymptoms.find({ appointmentId }),
+        PrescriptionItem.find({ appointmentId }),
+        PatientInvestigation.findOne({ appointmentId }),
+      ]);
+
+    if (
+      (!patientItems || patientItems.length === 0) &&
+      (!medicineItems || medicineItems.length === 0) &&
+      !patientInvestigation
+    ) {
+      return res.status(200).json({
+        success: false,
+        message: "No data found for this appointment",
+        data: {
+          appointmentId,
+        },
+      });
+    }
+
+    const symptomIds = patientItems.map((item) => item.symptomId);
+    const medicineIds = medicineItems.map((item) => item.medicineId);
+    const investigationIds = patientInvestigation?.investigations || [];
+    const instructionIds = patientInvestigation?.instructions || [];
+    const procedureIds = patientInvestigation?.procedures || [];
+
+    const [allSymptoms, allFindings, allDiagnosis, allMedicines] =
+      await Promise.all([
+        Symptoms.find({ _id: { $in: symptomIds } }),
+        Findings.find({ _id: { $in: symptomIds } }),
+        Diagnosis.find({ _id: { $in: symptomIds } }),
+        Medicine.find({ _id: { $in: medicineIds } }),
+      ]);
+
+    const [allInvestigations, allInstructions, allProcedures] =
+      await Promise.all([
+        Investigation.find({ _id: { $in: investigationIds } }),
+        Instructions.find({ _id: { $in: instructionIds } }),
+        Procedures.find({ _id: { $in: procedureIds } }),
+      ]);
+
+    const mapById = (items) => {
+      const map = {};
+      items.forEach((item) => {
+        map[item._id.toString()] = item.toObject();
+      });
+      return map;
+    };
+
+    const symptomsMap = mapById(allSymptoms);
+    const findingsMap = mapById(allFindings);
+    const diagnosisMap = mapById(allDiagnosis);
+    const medicinesMap = mapById(allMedicines);
+    const investigationsMap = mapById(allInvestigations);
+    const instructionsMap = mapById(allInstructions);
+    const proceduresMap = mapById(allProcedures);
+
+    const result = {
+      appointmentId,
+      symptoms: [],
+      findings: [],
+      diagnosis: [],
+      medicines: [],
+      investigations: [],
+      instructions: [],
+      procedures: [],
+    };
+
+    for (const item of patientItems) {
+      const symptomId = item.symptomId.toString();
+      let type = "unknown";
+      let data = null;
+
+      if (symptomsMap[symptomId]) {
+        type = "symptom";
+        data = symptomsMap[symptomId];
+      } else if (findingsMap[symptomId]) {
+        type = "finding";
+        data = findingsMap[symptomId];
+      } else if (diagnosisMap[symptomId]) {
+        type = "diagnosis";
+        data = diagnosisMap[symptomId];
+      }
+
+      if (!data) continue;
+
+      const obj = {
+        symptomId: item.symptomId,
+        name: data.name || "Unknown",
+        note: item.note || null,
+        type,
+        details: [],
+      };
+
+      if (type === "diagnosis") {
+        obj.location = item.location || null;
+        obj.description = item.description || null;
+      } else {
+        obj.since = item.since || null;
+        obj.severity = item.severity || null;
+      }
+
+      let propertiesDoc = null;
+      if (type === "symptom") {
+        propertiesDoc = await SymptomsProperties.findOne({
+          symptopId: item.symptomId,
+        });
+      } else if (type === "finding") {
+        propertiesDoc = await FindingsProperties.findOne({
+          findingsId: item.symptomId,
+        });
+      } else if (type === "diagnosis") {
+        propertiesDoc = await DiagnosisProperties.findOne({
+          diagnosisId: item.symptomId,
+        });
+      }
+
+      if (item.details?.length > 0) {
+        for (const detail of item.details) {
+          const detailObj = {
+            categoryId: detail.detailId,
+            categoryName: "",
+            properties: [],
+          };
+
+          const matchedDetail = propertiesDoc?.details?.find(
+            (d) => d._id.toString() === detail.detailId.toString()
+          );
+
+          if (matchedDetail) {
+            detailObj.categoryName = matchedDetail.categoryName || "";
+            for (const prop of detail.properties || []) {
+              const matchedProp = matchedDetail.categoryProperties?.find(
+                (p) => p._id.toString() === prop.propertyId.toString()
+              );
+              detailObj.properties.push({
+                propertyId: prop.propertyId,
+                propertyName: matchedProp?.propertyName || "",
+                propertyValue: prop.propertyValue,
+              });
+            }
+          }
+
+          obj.details.push(detailObj);
+        }
+      }
+
+      if (type === "symptom") result.symptoms.push(obj);
+      else if (type === "finding") result.findings.push(obj);
+      else if (type === "diagnosis") result.diagnosis.push(obj);
+    }
+
+    for (const item of medicineItems) {
+      const medicineId = item.medicineId.toString();
+      const data = medicinesMap[medicineId];
+      if (!data) continue;
+
+      const medicineObj = {
+        medicineId,
+        name: data.name || "Unknown Medicine",
+        compositionName: data.compositionName || "",
+        doses: [],
+      };
+
+      for (const dose of item.doses || []) {
+        medicineObj.doses.push({
+          doseNumber: dose.doseNumber,
+          quantity: dose.quantity,
+          dosage: dose.dosage,
+          timing: dose.timing,
+          duration: dose.duration,
+          note: dose.note || "",
+          prescriptionType: dose.prescriptionType || "",
+        });
+      }
+
+      result.medicines.push(medicineObj);
+    }
+
+    result.investigations = investigationIds
+      .map((id) => {
+        const data = investigationsMap[id.toString()];
+        return data
+          ? {
+              _id: id,
+              name: data.name || "",
+              description: data.description || "",
+              category: data.category || "",
+            }
+          : null;
+      })
+      .filter(Boolean);
+
+    result.instructions = instructionIds
+      .map((id) => {
+        const data = instructionsMap[id.toString()];
+        return data
+          ? {
+              _id: id,
+              name: data.name || "",
+              description: data.description || "",
+            }
+          : null;
+      })
+      .filter(Boolean);
+
+    result.procedures = procedureIds
+      .map((id) => {
+        const data = proceduresMap[id.toString()];
+        return data
+          ? {
+              _id: id,
+              name: data.name || "",
+              description: data.description || "",
+              duration: data.duration || "",
+            }
+          : null;
+      })
+      .filter(Boolean);
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+      date: pastAppointment.appointmentDate,
+    });
+  } catch (error) {
+    console.error("Error in getSinglePastAppointmentDataByPatientId:", error);
     res.status(500).json({
       success: false,
       message: "Server error",

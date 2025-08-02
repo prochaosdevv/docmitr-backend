@@ -71,6 +71,11 @@ const patientSchema = new mongoose.Schema(
       default: null,
     },
 
+    note: {
+      type: String,
+      default: null,
+    },
+
     // -------------
 
     domYear: {

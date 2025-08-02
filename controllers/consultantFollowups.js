@@ -3449,7 +3449,7 @@ export const getPastPatientSymptomsFindingsDiagnosis = async (req, res) => {
 
 export const deletePatientSymptoms = async (req, res) => {
   try {
-    const { symptomId } = req.params;
+    const { symptomId, appointmentId } = req.params;
 
     if (!symptomId || !mongoose.Types.ObjectId.isValid(symptomId)) {
       return res.status(400).json({ message: "Valid symptomId is required." });
@@ -3463,7 +3463,7 @@ export const deletePatientSymptoms = async (req, res) => {
     }
 
     // Delete all symptoms for the given appointmentId
-    await PatientSymptoms.deleteOne({ symptomId });
+    await PatientSymptoms.deleteOne({ symptomId, appointmentId });
 
     res.status(200).json({
       success: true,

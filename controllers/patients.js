@@ -129,6 +129,7 @@ export const createPatient = async (req, res) => {
       purposeOfVisit: req.body.purposeOfVisit || null,
       patientUID: req.body.uid || null,
       thirdPartyUID: req.body.thirdPartyUid || null,
+      note: req.body.note || null,
     });
 
     await newPatient.save();
@@ -168,6 +169,7 @@ export const updatePatient = async (req, res) => {
       ageMonths,
       ageYears,
       address,
+      note,
     } = req.body;
 
     if (!id) {
@@ -207,6 +209,7 @@ export const updatePatient = async (req, res) => {
       purposeOfVisit: purposeOfVisit || null,
       flag: flag || "",
       clinicSpecificId: clinicSpecificId || "",
+      note: note || null,
 
       // Optional but validated
       adhar: adhar && /^\d{12}$/.test(adhar) ? adhar : null,

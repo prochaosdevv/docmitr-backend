@@ -194,7 +194,10 @@ router.delete("/medicine/properties-save/:medicineId", removeMedicineData);
 router.post("/templates/appointments/save", saveDataToTemplate);
 router.get("/templates/saved", getAllSavedTemplates);
 router.get("/templates/data/:templateId", getDataByTemplateId);
-router.delete("/templates/data/delete/:symptomId", deletePatientSymptoms);
+router.delete(
+  "/templates/data/delete/:symptomId/:appointmentId",
+  deletePatientSymptoms
+);
 
 // dosage calculator
 
