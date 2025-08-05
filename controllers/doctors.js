@@ -215,14 +215,15 @@ export const createDoctor = async (req, res) => {
 
     // generate a invoice
 
-    // try {
-    //   await generateInvoice({
-    //     doctorId: newDoctor._id,
-    //     subscription, // passed from request
-    //   });
-    // } catch (err) {
-    //   console.error("Failed to generate invoice:", err.message);
-    // }
+    try {
+      await generateInvoice({
+        doctorId: newDoctor._id,
+        subscription, // passed from request
+        duration: subscriptionEndDate, // passed from request
+      });
+    } catch (err) {
+      console.error("Failed to generate invoice:", err.message);
+    }
 
     res.status(201).json({
       doctor: newDoctor,
