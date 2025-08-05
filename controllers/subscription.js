@@ -5,13 +5,11 @@ import Subscriptions from "../models/Subscriptions.js";
 // Create subscription
 export const createSubscription = async (req, res) => {
   try {
-    const { planName, price, startDate, endDate } = req.body;
+    const { planName, price } = req.body;
 
     const subscription = new Subscriptions({
       planName,
       price,
-      startDate,
-      endDate,
     });
 
     const saved = await subscription.save();
@@ -28,23 +26,21 @@ export const createSubscription = async (req, res) => {
 // Get all subscriptions
 export const getAllSubscriptions = async (req, res) => {
   try {
-    const { forDoctors } = req.query;
+    // const { forDoctors } = req.query;
 
-    console.log("Fetching subscriptions with filter:", typeof forDoctors);
+    // let filter = {};
 
-    let filter = {};
+    // if (forDoctors === "true") {
+    //   const today = new Date();
 
-    if (forDoctors === "true") {
-      const today = new Date();
+    //   // Only include active (non-expired) subscriptions
+    //   filter = {
+    //     startDate: { $lte: today },
+    //     endDate: { $gte: today },
+    //   };
+    // }
 
-      // Only include active (non-expired) subscriptions
-      filter = {
-        startDate: { $lte: today },
-        endDate: { $gte: today },
-      };
-    }
-
-    const subscriptions = await Subscriptions.find(filter).sort({
+    const subscriptions = await Subscriptions.find({}).sort({
       createdAt: -1,
     });
 

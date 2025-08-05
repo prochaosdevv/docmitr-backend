@@ -862,10 +862,18 @@ export const getFollowUpDataByPatientId = async (req, res) => {
 
     const pastAppointment = await Appoinment.findOne({
       patientId,
-      _id: { $lt: currentAppointmentId }, // important: only older ones
+      _id: { $ne: currentAppointmentId }, // Exclude current appointment
     })
-      .sort({ _id: -1 }) // latest one before current
+      .sort({ createdAt: -1, _id: -1 }) // Sort by creation date, then by ID
       .exec();
+
+    if (!pastAppointment) {
+      return res.status(200).json({
+        success: false,
+        message: "No previous appointment found for this patient.",
+        data: null,
+      });
+    }
 
     // Use the appointment._id for fetching associated data
     const appointmentId = pastAppointment._id;

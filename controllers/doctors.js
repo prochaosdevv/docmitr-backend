@@ -125,6 +125,7 @@ export const createDoctor = async (req, res) => {
       consultationFee,
       regNo,
       subscription,
+      subscriptionDuration,
       address,
       city,
       state,
@@ -149,6 +150,36 @@ export const createDoctor = async (req, res) => {
     // Hash the generated password
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
+    // set subscription end date based on duration
+    let subscriptionEndDate = null;
+
+    if (subscriptionDuration) {
+      const durationInMonths = parseInt(subscriptionDuration, 10);
+      if (isNaN(durationInMonths) || durationInMonths <= 0) {
+        return res
+          .status(400)
+          .json({ message: "Invalid subscription duration" });
+      }
+
+      const now = new Date();
+      const end = new Date(now);
+
+      // Set day to 1 temporarily to prevent rollover issues
+      end.setDate(1);
+      end.setMonth(end.getMonth() + durationInMonths);
+
+      // Now restore day to original (or last day of new month if original day is too big)
+      const originalDay = now.getDate();
+      const daysInTargetMonth = new Date(
+        end.getFullYear(),
+        end.getMonth() + 1,
+        0
+      ).getDate();
+      end.setDate(Math.min(originalDay, daysInTargetMonth));
+
+      subscriptionEndDate = end;
+    }
+
     // Create new doctor with generated password
     const newDoctor = await Doctor.create({
       firstName,
@@ -161,6 +192,7 @@ export const createDoctor = async (req, res) => {
       consultationFee,
       regNo,
       subscription,
+      subscriptionEndDate,
       address,
       city,
       state,
@@ -183,15 +215,15 @@ export const createDoctor = async (req, res) => {
 
     // generate a invoice
 
-    try {
-      await generateInvoice({
-        doctorId: newDoctor._id,
-        subscription, // passed from request
-      });
-    } catch (err) {
-      console.error("Failed to generate invoice:", err.message);
-    }
-    // Optionally return the plain password (e.g. to send in email)
+    // try {
+    //   await generateInvoice({
+    //     doctorId: newDoctor._id,
+    //     subscription, // passed from request
+    //   });
+    // } catch (err) {
+    //   console.error("Failed to generate invoice:", err.message);
+    // }
+
     res.status(201).json({
       doctor: newDoctor,
     });
@@ -212,7 +244,7 @@ export const updateDoctor = async (req, res) => {
       bio,
       consultationFee,
       regNo,
-      subscriptionType,
+      subscription,
       address,
       city,
       state,
@@ -232,11 +264,11 @@ export const updateDoctor = async (req, res) => {
     doctor.lastName = lastName || doctor.lastName;
     doctor.specialization = specialization || doctor.specialization;
     doctor.email = email || doctor.email;
-    doctor.phone = phone ? `+91 ${phone}` : doctor.phone;
+    doctor.phone = phone || doctor.phone;
     doctor.bio = bio || doctor.bio;
     doctor.consultationFee = consultationFee || doctor.consultationFee;
     doctor.regNo = regNo || doctor.regNo;
-    doctor.subscriptionType = subscriptionType || doctor.subscriptionType;
+    doctor.subscription = subscription || doctor.subscription;
     doctor.address = address || doctor.address;
     doctor.city = city || doctor.city;
     doctor.state = state || doctor.state;
