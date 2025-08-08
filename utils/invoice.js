@@ -5,9 +5,10 @@ import { generateInvoiceId } from "../utils/helper-functions.js";
 export const generateInvoice = async ({
   doctorId,
   subscription,
-  duration,
   amount,
   description,
+  invoiceDate,
+  dueDate,
 }) => {
   let invoiceData = {
     invoiceId: generateInvoiceId(),
@@ -29,34 +30,10 @@ export const generateInvoice = async ({
     if (!amount || !description)
       throw new Error("Missing manual invoice fields");
 
-    let subscriptionEndDate = null;
-
-    const durationInMonths = parseInt(duration, 10);
-    if (isNaN(durationInMonths) || durationInMonths <= 0) {
-      throw new Error("Invalid subscription duration");
-    }
-
-    const now = new Date();
-    const end = new Date(now);
-
-    // Set day to 1 temporarily to prevent rollover issues
-    end.setDate(1);
-    end.setMonth(end.getMonth() + durationInMonths);
-
-    // Now restore day to original (or last day of new month if original day is too big)
-    const originalDay = now.getDate();
-    const daysInTargetMonth = new Date(
-      end.getFullYear(),
-      end.getMonth() + 1,
-      0
-    ).getDate();
-    end.setDate(Math.min(originalDay, daysInTargetMonth));
-
-    subscriptionEndDate = end;
-
     totalAmount = amount;
-    invoiceData.invoiceDate = new Date();
-    invoiceData.dueDate = subscriptionEndDate;
+    invoiceData.invoiceDate = invoiceDate || new Date();
+    invoiceData.dueDate =
+      dueDate || new Date(new Date().setMonth(new Date().getMonth() + 1));
     invoiceData.description = description;
   }
 

@@ -32,6 +32,7 @@ import { labRouter } from "./routes/lab.js";
 import { subscriptionRoutes } from "./routes/subscription.js";
 import { invoiceRoutes } from "./routes/invoice.js";
 import { adminSettingsRoutes } from "./routes/adminSettings.js";
+import { paymentRoutes } from "./routes/payment.js";
 
 // Load environment variables
 dotenv.config();
@@ -45,6 +46,10 @@ connectDb();
 app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
+
+app.use("/test", (req, res) => {
+  res.send("Test route is working");
+});
 
 // Routes
 app.use("/docmitr/api/auth", authRoutes);
@@ -84,6 +89,7 @@ app.use("/docmitr/api/reference", doctorReferenceRoutes);
 app.use("/docmitr/api/reference/other", otherReferenceRoutes);
 app.use("/docmitr/api/subscriptions", authenticateToken, subscriptionRoutes);
 app.use("/docmitr/api/settings", authenticateToken, adminSettingsRoutes);
+app.use("/docmitr/api/payments", paymentRoutes);
 
 // Root route
 app.get("/docmitr", (req, res) => {

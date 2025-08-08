@@ -11,6 +11,8 @@ import {
   getLoggedInDoctor,
   getDoctorsExceptLoggedIn,
   getTotalDoctorsCount,
+  updateDoctorProfileImage,
+  updateDoctorDetails,
 } from "../controllers/doctors.js";
 import { loginDoctor } from "../controllers/auth.js";
 import { isAdmin } from "../middleware/auth.js";
@@ -28,5 +30,7 @@ router.delete("/:id", isAdmin, deleteDoctorByid);
 router.get("/:id/appointments", getDoctorAppointments);
 router.get("/:id/patients", getDoctorPatients);
 router.patch("/status/:id", isAdmin, toggleDoctorStatus);
+router.patch("/profile/image", updateDoctorProfileImage);
+router.put("/profile/details", updateDoctorDetails);
 
 export const doctorRoutes = router;

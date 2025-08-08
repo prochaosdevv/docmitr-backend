@@ -65,6 +65,10 @@ const doctorSchema = new mongoose.Schema(
       type: String,
       default: "doctor",
     },
+    profileImage: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,

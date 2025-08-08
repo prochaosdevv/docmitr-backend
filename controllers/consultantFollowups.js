@@ -2259,7 +2259,7 @@ export const getPaginatedMedicines = async (req, res) => {
       console.log("here");
       const allMedicines = await Medicine.find(filter).sort({ _id: 1 }).lean();
 
-      const limit = 4 + selectedCount;
+      const limit = 50 + selectedCount;
       const visibleMedicines = allMedicines.slice(0, limit);
 
       res.status(200).json({ medicines: visibleMedicines });

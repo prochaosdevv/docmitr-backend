@@ -168,6 +168,8 @@ export const loginDoctor = async (req, res) => {
           specialization: doctor.specialization,
           phone: doctor.phone,
           profileCompleted: doctor.profileCompleted,
+          subscriptionEndDate: doctor.subscriptionEndDate,
+          subscription: doctor.subscription,
           role: "doctor",
         },
       },

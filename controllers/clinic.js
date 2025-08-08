@@ -331,3 +331,59 @@ export const getTotalClinics = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
+
+export const updateClinicTiming = async (req, res) => {
+  try {
+    const { id } = req.params; // clinic _id
+    const {
+      day,
+      session,
+      startHour,
+      startMinute,
+      startPeriod,
+      endHour,
+      endMinute,
+      endPeriod,
+    } = req.body;
+
+    console.log(id, req.body, "fdfdf");
+
+    if (!day || !session) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Day and session are required" });
+    }
+
+    const dayKey = day.toLowerCase();
+
+    // Build dynamic path for update
+    const path = `clinicTimings.weeklySchedule.${dayKey}.${session}`;
+
+    const updateData = {
+      [`${path}.startHour`]: startHour,
+      [`${path}.startMinute`]: startMinute,
+      [`${path}.startPeriod`]: startPeriod,
+      [`${path}.endHour`]: endHour,
+      [`${path}.endMinute`]: endMinute,
+      [`${path}.endPeriod`]: endPeriod,
+      [`${path}.enabled`]: true, // if you also want to ensure it’s enabled
+    };
+
+    const updatedClinic = await Clinic.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true }
+    );
+
+    if (!updatedClinic) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Clinic not found" });
+    }
+
+    res.json({ success: true, data: updatedClinic });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};

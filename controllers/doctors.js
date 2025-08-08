@@ -4,6 +4,15 @@ import Doctor from "../models/Doctor.js";
 import bcrypt from "bcryptjs";
 import { sendEmail } from "../utils/send-mail.js";
 import { generateInvoice } from "../utils/invoice.js";
+import { formidable } from "formidable";
+import fs from "fs";
+import AWS from "aws-sdk";
+
+const s3Client = new AWS.S3({
+  secretAccessKey: process.env.ACCESS_KEY,
+  accessKeyId: process.env.ACCESS_ID,
+  region: process.env.region,
+});
 
 export const getDoctors = async (req, res) => {
   try {
@@ -76,7 +85,10 @@ export const getLoggedInDoctor = async (req, res) => {
     const doctorId = req.user.id;
 
     // Find the doctor by ID
-    const doctor = await Doctor.findById(doctorId).lean().select("-password");
+    const doctor = await Doctor.findById(doctorId)
+      .lean()
+      .populate("subscription", "planName price")
+      .select("-password");
 
     if (!doctor) {
       return res.status(404).json({ message: "Doctor not found" });
@@ -246,6 +258,7 @@ export const updateDoctor = async (req, res) => {
       consultationFee,
       regNo,
       subscription,
+      subscriptionDuration,
       address,
       city,
       state,
@@ -260,6 +273,36 @@ export const updateDoctor = async (req, res) => {
       return res.status(404).json({ message: "Doctor not found" });
     }
 
+    // set subscription end date based on duration
+    let subscriptionEndDate = null;
+
+    if (subscriptionDuration) {
+      const durationInMonths = parseInt(subscriptionDuration, 10);
+      if (isNaN(durationInMonths) || durationInMonths <= 0) {
+        return res
+          .status(400)
+          .json({ message: "Invalid subscription duration" });
+      }
+
+      const now = new Date();
+      const end = new Date(now);
+
+      // Set day to 1 temporarily to prevent rollover issues
+      end.setDate(1);
+      end.setMonth(end.getMonth() + durationInMonths);
+
+      // Now restore day to original (or last day of new month if original day is too big)
+      const originalDay = now.getDate();
+      const daysInTargetMonth = new Date(
+        end.getFullYear(),
+        end.getMonth() + 1,
+        0
+      ).getDate();
+      end.setDate(Math.min(originalDay, daysInTargetMonth));
+
+      subscriptionEndDate = end;
+    }
+
     // Update only allowed fields (not password)
     doctor.firstName = firstName || doctor.firstName;
     doctor.lastName = lastName || doctor.lastName;
@@ -270,6 +313,8 @@ export const updateDoctor = async (req, res) => {
     doctor.consultationFee = consultationFee || doctor.consultationFee;
     doctor.regNo = regNo || doctor.regNo;
     doctor.subscription = subscription || doctor.subscription;
+    doctor.subscriptionEndDate =
+      subscriptionEndDate || doctor.subscriptionEndDate;
     doctor.address = address || doctor.address;
     doctor.city = city || doctor.city;
     doctor.state = state || doctor.state;
@@ -391,6 +436,123 @@ export const toggleDoctorStatus = async (req, res) => {
       message: `Doctor ${
         doctor.active ? "activated" : "deactivated"
       } successfully`,
+      doctor,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const updateDoctorProfileImage = async (req, res) => {
+  try {
+    const form = formidable({
+      maxFileSize: 1 * 1024 * 1024 * 1024, // 1 GB
+      multiples: false,
+    });
+
+    let filePath,
+      fileName,
+      fileType,
+      fields = {};
+
+    form.parse(req);
+
+    form.on("field", (name, value) => {
+      fields[name] = value;
+    });
+
+    form.on("file", (name, file) => {
+      if (["image", "file", "attachment"].includes(name)) {
+        filePath = file.filepath || file.path;
+        fileName = file.originalFilename || file.newFilename;
+        fileType = file.mimetype || "application/octet-stream";
+      }
+    });
+
+    form.on("end", async () => {
+      if (!filePath) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      try {
+        const buffer = fs.readFileSync(filePath);
+        const extension = fileName.split(".").pop().toLowerCase();
+        const s3Key = `doctor-profile-image/${Date.now()}_${fileName}`;
+
+        const upload = await s3Client
+          .upload({
+            Bucket: process.env.IMAGE_BUCKET,
+            Key: s3Key,
+            Body: buffer,
+            ContentType: fileType,
+          })
+          .promise();
+
+        const doctorId = req.user.id;
+
+        let type = "document";
+        if (fileType.startsWith("image/")) type = "image";
+
+        // Try to find existing attachment entry for same day
+        let existing = await Doctor.findById(doctorId);
+
+        if (!existing) {
+          return res.status(404).json({ error: "Doctor not found" });
+        }
+
+        // Update the doctor's profile image
+        existing.profileImage = upload.Location;
+
+        await existing.save();
+
+        res.status(201).json({
+          success: true,
+          message: "Profile image updated successfully",
+          doctor: existing,
+        });
+      } catch (err) {
+        console.error("Upload Error:", err);
+        res
+          .status(500)
+          .json({ error: "Attachment creation failed: " + err.message });
+      }
+    });
+
+    form.on("error", (err) => {
+      console.error("Formidable Error:", err);
+      return res.status(500).json({ error: "Error parsing form data" });
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const updateDoctorDetails = async (req, res) => {
+  try {
+    const doctorId = req.user.id;
+    const updates = req.body;
+
+    // Find the doctor by ID
+    const doctor = await Doctor.findById(doctorId);
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // Update the doctor's details
+    Object.keys(updates).forEach((key) => {
+      if (doctor[key] !== undefined) {
+        doctor[key] = updates[key];
+      }
+    });
+
+    // Save the updated doctor
+    await doctor.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Doctor details updated successfully",
       doctor,
     });
   } catch (error) {
