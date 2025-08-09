@@ -65,6 +65,7 @@ import {
   getProcedureLocations,
   getSymptomProperties,
   removeMedicineData,
+  removerescriptionItem,
   saveDataToTemplate,
   searchDiagnosis,
   searchFindings,
@@ -187,6 +188,8 @@ router.put("/allergies/upsert", upsetAllergy);
 router.get("/allergies/:patientId", getAllergiesByPatientId);
 
 router.post("/medicine/properties-save", upsertPrescriptionItem);
+router.post("/medicine/properties-remove", removerescriptionItem);
+ 
 router.post("/medicine/properties-save/data", addOrUpdateMedicineData);
 router.get("/medicine/properties-save/:medicineId", getMedicineData);
 router.delete("/medicine/properties-save/:medicineId", removeMedicineData);

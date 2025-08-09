@@ -3475,6 +3475,36 @@ export const deletePatientSymptoms = async (req, res) => {
   }
 };
 
+export const removerescriptionItem = async (req, res) => {
+  try {
+    const { appointmentId, medicineId, doses = [], templateId } = req.body;
+
+    if (
+      !appointmentId ||
+      !medicineId
+    ) {
+      return res.status(400).json({ message: "Missing or invalid fields." });
+    } 
+    // Find existing prescription
+    const existingItem = await PrescriptionItem.deleteOne({
+      appointmentId,
+      medicineId,
+      templateId: templateId || null,
+    });
+     
+      return res.status(200).json({
+        message: "Prescription updated", 
+      });
+    
+  } catch (error) {
+    console.error("Error in upsertPrescriptionItem:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
 export const upsertPrescriptionItem = async (req, res) => {
   try {
     const { appointmentId, medicineId, doses = [], templateId } = req.body;
