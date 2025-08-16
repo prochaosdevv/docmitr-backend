@@ -75,6 +75,7 @@ import {
   searchProcedures,
   searchSymptoms,
   updateMedicineByDoctor,
+  updateSymptom,
   upsertPatientInvestigation,
   upsertPrescriptionItem,
   upsetAllergy,
@@ -91,12 +92,13 @@ router.post(
   "/doctor/symptoms-properties/create",
   createSymptomPropertyByDoctor
 );
+router.put("/edit/symptoms/name/:symptomId", updateSymptom)
+router.delete("/symptoms/delete/:symptopId", deleteSymptom);
 router.get("/symptoms-properties/:symptopId", getSymptomProperties);
 router.post("/symptoms-properties/add", addOnSymptomProperties);
 router.delete("/symptoms-properties/delete", deleteSymptomCategory);
 router.put("/symptoms-properties/edit", editSymptomProperty);
 router.get("/symptoms/search", searchSymptoms);
-router.delete("/symptoms/delete/:symptopId", deleteSymptom);
 
 router.post("/symptoms/save", addOrSaveConsultSymptomsData);
 

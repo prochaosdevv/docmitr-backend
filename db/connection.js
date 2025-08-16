@@ -15,6 +15,8 @@ const uri =
   "?retryWrites=true&w=majority";
 
 export const connectDb = () => {
+  console.log(process.env.MONGO_URI);
+  
   mongoose
     .connect(process.env.MONGO_URI)
     // .connect(uri, {
@@ -25,6 +27,6 @@ export const connectDb = () => {
       console.log(`mongodb connect with server ${data.connection.host}`);
     })
     .catch((err) => {
-      console.log(err);
+      console.log(err); 
     });
 };

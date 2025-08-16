@@ -104,6 +104,50 @@ export const getAllSymptoms = async (req, res) => {
   }
 };
 
+
+export const updateSymptom = async (req, res) => {
+  try {
+    const { id, role } = req.user; 
+    const { symptomId } = req.params;
+    const { name } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: "Name is required" });
+    }
+
+    // find the symptom
+    const symptom = await Symptoms.findById(symptomId);
+    if (!symptom) {
+      return res.status(404).json({ message: "Symptom not found" });
+    }
+
+    // check permissions
+    if (role === "admin") {
+      if (!symptom.isAdmin) {
+        return res
+          .status(403)
+          .json({ message: "Admins can only edit global symptoms" });
+      }
+    } else if (role === "doctor") {
+      if (!symptom.isAdmin && symptom.doctorId.toString() !== id) {
+        return res
+          .status(403)
+          .json({ message: "You can only edit your own symptoms" });
+      }
+    } else {
+      return res.status(403).json({ message: "Unauthorized role" });
+    }
+
+    // update
+    symptom.name = name;
+    await symptom.save();
+
+    res.status(200).json({ message: "Symptom updated successfully", symptom });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 export const createSymptomPropertyByAdmin = async (req, res) => {
   try {
     const { symptopId, details } = req.body;
