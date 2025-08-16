@@ -667,6 +667,35 @@ export const getAllFindings = async (req, res) => {
   }
 };
 
+// PUT /api/findings/:id
+export const updateFindingName = async (req, res) => {
+  try {
+    const { id: userId, role } = req.user; // From JWT
+    const { name } = req.body; // New name
+    const { id } = req.params; // Finding ID
+
+    if (!name) return res.status(400).json({ message: "Name is required" });
+
+    // Fetch the finding first
+    const finding = await Findings.findById(id);
+    if (!finding) return res.status(404).json({ message: "Finding not found" });
+
+    // Authorization check
+    if (role === "doctor" && finding.doctorId.toString() !== userId) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    // Update the name
+    finding.name = name;
+    await finding.save();
+
+    res.status(200).json({ message: "Finding updated successfully", finding });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
 export const createFindingPropertyByAdmin = async (req, res) => {
   try {
     const { findingsId, details } = req.body;
@@ -1181,6 +1210,35 @@ export const getAllDiagnosis = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+// PUT /api/diagnosis/:id
+export const updateDiagnosisName = async (req, res) => {
+  try {
+    const { id: userId, role } = req.user; // From JWT
+    const { name } = req.body; // New name
+    const { id } = req.params; // Diagnosis ID
+
+    if (!name) return res.status(400).json({ message: "Name is required" });
+
+    // Fetch the diagnosis first
+    const diagnosis = await Diagnosis.findById(id);
+    if (!diagnosis) return res.status(404).json({ message: "Diagnosis not found" });
+
+    // Authorization check
+    if (role === "doctor" && diagnosis.doctorId.toString() !== userId) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    // Update the name
+    diagnosis.name = name;
+    await diagnosis.save();
+
+    res.status(200).json({ message: "Diagnosis updated successfully", diagnosis });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 
 export const createDiagnosisPropertyByAdmin = async (req, res) => {
   try {

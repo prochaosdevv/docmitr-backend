@@ -74,6 +74,8 @@ import {
   searchMedicines,
   searchProcedures,
   searchSymptoms,
+  updateDiagnosisName,
+  updateFindingName,
   updateMedicineByDoctor,
   updateSymptom,
   upsertPatientInvestigation,
@@ -93,6 +95,8 @@ router.post(
   createSymptomPropertyByDoctor
 );
 router.put("/edit/symptoms/name/:symptomId", updateSymptom)
+router.put("/edit/finding/name/:id", updateFindingName)
+router.put("/edit/diagnosis/name/:id", updateDiagnosisName)
 router.delete("/symptoms/delete/:symptopId", deleteSymptom);
 router.get("/symptoms-properties/:symptopId", getSymptomProperties);
 router.post("/symptoms-properties/add", addOnSymptomProperties);
