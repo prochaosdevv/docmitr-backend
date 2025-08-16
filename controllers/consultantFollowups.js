@@ -136,6 +136,8 @@ export const updateSymptom = async (req, res) => {
     res.status(200).json({ message: "Symptom updated successfully", symptom });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
+    console.log(error);
+    
   }
 };
 
