@@ -94,9 +94,10 @@ router.post(
   "/doctor/symptoms-properties/create",
   createSymptomPropertyByDoctor
 );
-router.put("/edit/symptoms/name/:symptomId", updateSymptom)
-router.put("/edit/findings/name/:id", updateFindingName)
-router.put("/edit/diagnosis/name/:id", updateDiagnosisName)
+router.put("/edit/symptoms/name/:id", updateSymptom);
+router.put("/edit/findings/name/:id", updateFindingName);
+router.put("/edit/diagnosis/name/:id", updateDiagnosisName);
+
 router.delete("/symptoms/delete/:symptopId", deleteSymptom);
 router.get("/symptoms-properties/:symptopId", getSymptomProperties);
 router.post("/symptoms-properties/add", addOnSymptomProperties);

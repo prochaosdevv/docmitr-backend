@@ -105,40 +105,31 @@ export const getAllSymptoms = async (req, res) => {
 };
 
 
+// PUT /edit/symptoms/name/:id
 export const updateSymptom = async (req, res) => {
   try {
-    const { id, role } = req.user; 
-    const { symptomId } = req.params;
+    const { id: userId, role } = req.user; // From JWT
+    const { id } = req.params; // Symptom ID
     const { name } = req.body;
 
     if (!name) {
       return res.status(400).json({ message: "Name is required" });
     }
 
-    // find the symptom
-    const symptom = await Symptoms.findById(symptomId);
-    if (!symptom) {
-      return res.status(404).json({ message: "Symptom not found" });
+    // Find the symptom
+    const symptom = await Symptoms.findById(id);
+    if (!symptom) return res.status(404).json({ message: "Symptom not found" });
+
+    // Authorization check
+    if (role === "doctor" && !symptom.isAdmin && symptom.doctorId.toString() !== userId) {
+      return res.status(403).json({ message: "You can only edit your own symptoms" });
     }
 
-    // check permissions
-    if (role === "admin") {
-      if (!symptom.isAdmin) {
-        return res
-          .status(403)
-          .json({ message: "Admins can only edit global symptoms" });
-      }
-    } else if (role === "doctor") {
-      if (!symptom.isAdmin && symptom.doctorId.toString() !== id) {
-        return res
-          .status(403)
-          .json({ message: "You can only edit your own symptoms" });
-      }
-    } else {
-      return res.status(403).json({ message: "Unauthorized role" });
+    if (role === "admin" && !symptom.isAdmin) {
+      return res.status(403).json({ message: "Admins can only edit global symptoms" });
     }
 
-    // update
+    // Update name
     symptom.name = name;
     await symptom.save();
 
@@ -147,6 +138,7 @@ export const updateSymptom = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 export const createSymptomPropertyByAdmin = async (req, res) => {
   try {
