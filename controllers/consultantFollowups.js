@@ -106,38 +106,31 @@ export const getAllSymptoms = async (req, res) => {
 
 
 // PUT /edit/symptoms/name/:id
-export const updateSymptom = async (req, res) => {
+
+export const updateSymptoms = async (req, res) => {
   try {
     const { id: userId, role } = req.user; // From JWT
-    const { id } = req.params; // Symptom ID
-    const { name } = req.body;
+    const { name } = req.body; // New name
+    const { id } = req.params; 
 
-    if (!name) {
-      return res.status(400).json({ message: "Name is required" });
-    }
+    if (!name) return res.status(400).json({ message: "Name is required" });
 
-    // Find the symptom
+    // Fetch the finding first
     const symptom = await Symptoms.findById(id);
-    if (!symptom) return res.status(404).json({ message: "Symptom not found" });
+    if (!symptom) return res.status(404).json({ message: "Finding not found" });
 
     // Authorization check
-    if (role === "doctor" && !symptom.isAdmin && symptom.doctorId.toString() !== userId) {
-      return res.status(403).json({ message: "You can only edit your own symptoms" });
+    if (role === "doctor" && symptom.doctorId.toString() !== userId) {
+      return res.status(403).json({ message: "Unauthorized" });
     }
 
-    if (role === "admin" && !symptom.isAdmin) {
-      return res.status(403).json({ message: "Admins can only edit global symptoms" });
-    }
-
-    // Update name
+    // Update the name
     symptom.name = name;
     await symptom.save();
 
-    res.status(200).json({ message: "Symptom updated successfully", symptom });
+    res.status(200).json({ message: "Symptoms updated successfully", symptom });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
-    console.log(error);
-    
   }
 };
 

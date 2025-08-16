@@ -77,7 +77,7 @@ import {
   updateDiagnosisName,
   updateFindingName,
   updateMedicineByDoctor,
-  updateSymptom,
+  updateSymptoms,
   upsertPatientInvestigation,
   upsertPrescriptionItem,
   upsetAllergy,
@@ -94,7 +94,7 @@ router.post(
   "/doctor/symptoms-properties/create",
   createSymptomPropertyByDoctor
 );
-router.put("/edit/symptoms/name/:id", updateSymptom);
+router.put("/edit/symptomps/name/:id", updateSymptoms);
 router.put("/edit/findings/name/:id", updateFindingName);
 router.put("/edit/diagnosis/name/:id", updateDiagnosisName);
 
