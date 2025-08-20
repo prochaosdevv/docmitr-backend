@@ -35,9 +35,12 @@ import {
   deleteDiagnosisCategory,
   deleteFinding,
   deleteFindingsCategory,
+  deleteInstructionsByDoctor,
+  deleteInvestigationByDoctor,
   deleteInvestigationPanel,
   deleteMedicine,
   deletePatientSymptoms,
+  deleteProceduresByDoctor,
   deleteSymptom,
   deleteSymptomCategory,
   editDiagnosisProperty,
@@ -76,7 +79,10 @@ import {
   searchSymptoms,
   updateDiagnosisName,
   updateFindingName,
+  updateInstructionsByDoctor,
+  updateInvestigationByDoctor,
   updateMedicineByDoctor,
+  updateProceduresByDoctor,
   updateSymptoms,
   upsertPatientInvestigation,
   upsertPrescriptionItem,
@@ -154,6 +160,8 @@ router.get(
 
 router.post("/investigations/admin/create", createInvestigationByAdmin);
 router.post("/investigations/doctor/create", createInvestigationByDoctor);
+router.put("/update/investigations/doctor/:id", updateInvestigationByDoctor);
+router.delete("/delete/investigations/doctor/:id", deleteInvestigationByDoctor);
 router.get("/investigations", getPaginatedInvestigations);
 router.post("/investigationsbyIds", getInvestigationsByIds);
 router.get("/investigations/search", searchInvestigations);
@@ -165,6 +173,8 @@ router.delete("/investigations/panel/:panelId", deleteInvestigationPanel);
 router.post("/instructions/admin/create", createInstructionsByAdmin);
 router.post("/instructions/doctor/create", createInstructionsByDoctor);
 router.get("/instructions", getPaginatedInstructions);
+router.put("/update/instructions/doctor/:id", updateInstructionsByDoctor);
+router.delete("/delete/instructions/doctor/:id", deleteInstructionsByDoctor);
 router.get("/instructions/search", searchInstructions);
 
 // procedures
@@ -172,6 +182,8 @@ router.get("/instructions/search", searchInstructions);
 router.post("/procedures/admin/create", createProcedureByAdmin);
 router.post("/procedures/doctor/create", createProcedureByDoctor);
 router.get("/procedures", getPaginatedProcedures);
+router.put("/update/procedures/doctor/:id", updateProceduresByDoctor);
+router.delete("/delete/procedures/doctor/:id", deleteProceduresByDoctor);
 router.get("/procedures/search", searchProcedures);
 
 router.get("/procedures/locations/:appointmentId", getProcedureLocations);

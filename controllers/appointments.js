@@ -768,15 +768,18 @@ export const getAppointmentDataById = async (req, res) => {
     for (const item of medicineItems) {
       const medicineId = item.medicineId.toString();
       const data = medicinesMap[medicineId];
+
+      
       if (!data) continue;
 
       const medicineObj = {
         medicineId,
         name: data.name || "Unknown Medicine",
+        categoryName: data.categoryName,
         compositionName: data.compositionName || "",
         doses: [],
       };
-
+``
       for (const dose of item.doses || []) {
         medicineObj.doses.push({
           doseNumber: dose.doseNumber,

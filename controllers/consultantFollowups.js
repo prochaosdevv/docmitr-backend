@@ -1720,13 +1720,71 @@ export const createInvestigationByDoctor = async (req, res) => {
   }
 };
 
+export const updateInvestigationByDoctor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+    const doctorId = req.user.id;
+    
+
+    if (!name) {
+      return res.status(400).json({ message: "Investigation name is required" });
+    }
+
+    const investigation = await Investigation.findOne({ _id: id, doctorId });
+
+    if (!investigation) {
+      return res.status(404).json({ message: "Investigation not found" });
+    }
+
+    // prevent duplicate names
+    const duplicate = await Investigation.findOne({ name, doctorId, _id: { $ne: id } });
+    if (duplicate) {
+      return res.status(400).json({ message: "Another investigation with this name already exists." });
+    }
+
+    investigation.name = name;
+    await investigation.save();
+
+    res.status(200).json({
+      success: true,
+      investigation,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// ✅ Delete Investigation by Doctor
+export const deleteInvestigationByDoctor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doctorId = req.user.id;
+
+    const investigation = await Investigation.findOne({ _id: id, doctorId });
+
+    if (!investigation) {
+      return res.status(404).json({ message: "Investigation not found" });
+    }
+
+    await Investigation.deleteOne({ _id: id, doctorId });
+
+    res.status(200).json({
+      success: true,
+      message: "Investigation deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 export const getPaginatedInvestigations = async (req, res) => {
   try {
     // Destructure from authenticated user
     const { id, role } = req.user;
 
     let filter = {
-      $or: [{ isAdmin: true }, { doctorId: id }],
+      $or: [{ doctorId: id }],
     };
 
     // Fetch all investigations sorted by _id (or customize the sort logic)
@@ -1933,7 +1991,7 @@ export const getPaginatedInstructions = async (req, res) => {
     const { id, role } = req.user;
 
     let filter = {
-      $or: [{ isAdmin: true }, { doctorId: id }],
+      $or: [ { doctorId: id }],
     };
 
     // Fetch all investigations sorted by _id (or customize the sort logic)
@@ -1947,6 +2005,64 @@ export const getPaginatedInstructions = async (req, res) => {
   } catch (err) {
     console.error("Error fetching instructions:", err);
     res.status(500).json({ message: "Failed to fetch instructions" });
+  }
+};
+
+export const updateInstructionsByDoctor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+    const doctorId = req.user.id;
+    
+
+    if (!name) {
+      return res.status(400).json({ message: "Investigation name is required" });
+    }
+
+    const instructions = await Instructions.findOne({ _id: id, doctorId });
+
+    if (!instructions) {
+      return res.status(404).json({ message: "Instructions not found" });
+    }
+
+    // prevent duplicate names
+    const duplicate = await Instructions.findOne({ name, doctorId, _id: { $ne: id } });
+    if (duplicate) {
+      return res.status(400).json({ message: "Another instructions with this name already exists." });
+    }
+
+    instructions.name = name;
+    await instructions.save();
+
+    res.status(200).json({
+      success: true,
+      instructions,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// ✅ Delete Investigation by Doctor
+export const deleteInstructionsByDoctor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doctorId = req.user.id;
+
+    const investigation = await Instructions.findOne({ _id: id, doctorId });
+
+    if (!investigation) {
+      return res.status(404).json({ message: "Investigation not found" });
+    }
+
+    await Instructions.deleteOne({ _id: id, doctorId });
+
+    res.status(200).json({
+      success: true,
+      message: "Instructions deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -2026,7 +2142,7 @@ export const getPaginatedProcedures = async (req, res) => {
     const { id, role } = req.user;
 
     let filter = {
-      $or: [{ isAdmin: true }, { doctorId: id }],
+      $or: [ { doctorId: id }],
     };
 
     // Fetch all investigations sorted by _id (or customize the sort logic)
@@ -2038,6 +2154,64 @@ export const getPaginatedProcedures = async (req, res) => {
   } catch (err) {
     console.error("Error fetching procedures:", err);
     res.status(500).json({ message: "Failed to fetch procedures" });
+  }
+};
+
+export const updateProceduresByDoctor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+    const doctorId = req.user.id;
+    
+
+    if (!name) {
+      return res.status(400).json({ message: "Investigation name is required" });
+    }
+
+    const procedures = await Procedures.findOne({ _id: id, doctorId });
+
+    if (!procedures) {
+      return res.status(404).json({ message: "Procedures not found" });
+    }
+
+    // prevent duplicate names
+    const duplicate = await Procedures.findOne({ name, doctorId, _id: { $ne: id } });
+    if (duplicate) {
+      return res.status(400).json({ message: "Another procedures with this name already exists." });
+    }
+
+    procedures.name = name;
+    await procedures.save();
+
+    res.status(200).json({
+      success: true,
+      procedures,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// ✅ Delete Investigation by Doctor
+export const deleteProceduresByDoctor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doctorId = req.user.id;
+
+    const procedures = await Procedures.findOne({ _id: id, doctorId });
+
+    if (!procedures) {
+      return res.status(404).json({ message: "Procedures not found" });
+    }
+
+    await Procedures.deleteOne({ _id: id, doctorId });
+
+    res.status(200).json({
+      success: true,
+      message: "Procedures deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
