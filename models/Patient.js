@@ -28,6 +28,10 @@ const patientSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    customFlagText: {
+      type: String,
+      default: "",
+    },
 
     caretakerName: {
       type: String,

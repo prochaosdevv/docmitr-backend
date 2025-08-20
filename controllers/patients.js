@@ -98,6 +98,7 @@ export const createPatient = async (req, res) => {
       language: req.body.language || null,
       name: req.body.name,
       flag: req.body.flag || "",
+      customFlagText: req.body.customFlagText || "",
       email: req.body.email,
       phone: req.body.phone,
       dobYear: req.body.dateOfBirth.split("/")[2] || null,
@@ -165,6 +166,7 @@ export const updatePatient = async (req, res) => {
       language,
       purposeOfVisit,
       flag,
+      customFlagText,
       clinicSpecificId,
       ageMonths,
       ageYears,
@@ -208,6 +210,7 @@ export const updatePatient = async (req, res) => {
       language: language || "English",
       purposeOfVisit: purposeOfVisit || null,
       flag: flag || "",
+      customFlagText: customFlagText || "",
       clinicSpecificId: clinicSpecificId || "",
       note: note || null,
 
@@ -241,7 +244,7 @@ export const updatePatient = async (req, res) => {
 
     return res.status(200).json({
       message: "Patient updated successfully",
-      // data: updatedPatient,
+      data: updatedPatient,
     });
   } catch (error) {
     console.error("Update patient error:", error);

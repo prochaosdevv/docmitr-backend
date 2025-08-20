@@ -270,6 +270,7 @@ export const getAppointmentDetails = async (req, res) => {
           phone: patient.phone,
           gender: patient.gender,
           flag: patient.flag,
+          customFlagText: patient.customFlagText,
         },
       },
     });
