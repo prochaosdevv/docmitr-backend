@@ -4138,7 +4138,7 @@ export const addOrUpdateMedicineData = async (req, res) => {
 
 export const getMedicineData = async (req, res) => {
   try {
-    const { medicineId } = req.params;
+    const { medicineId, appointmentId } = req.params;
     if (!medicineId) {
       return res.status(400).json({
         message: "Medicine ID is required.",
@@ -4146,12 +4146,15 @@ export const getMedicineData = async (req, res) => {
     }
 
     const doctorId = req.user.id;
-
+    // console.log("doctorId", doctorId);
+  
     const medicineData = await PrescriptionItem.findOne({
       medicineId: medicineId,
+      appointmentId: appointmentId,
       doctorId: doctorId,
       isStarred: true,
     });
+    // console.log("medicineData", medicineData);
 
     if (!medicineData) {
       return res.status(200).json({

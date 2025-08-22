@@ -210,7 +210,7 @@ router.post("/medicine/properties-save", upsertPrescriptionItem);
 router.post("/medicine/properties-remove", removerescriptionItem);
  
 router.post("/medicine/properties-save/data", addOrUpdateMedicineData);
-router.get("/medicine/properties-save/:medicineId", getMedicineData);
+router.get("/medicine/properties-save/:medicineId/:appointmentId", getMedicineData);
 router.delete("/medicine/properties-save/:medicineId", removeMedicineData);
 
 router.post("/templates/appointments/save", saveDataToTemplate);
