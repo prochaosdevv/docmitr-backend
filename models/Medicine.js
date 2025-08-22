@@ -38,6 +38,10 @@ const medicineSchema = new mongoose.Schema(
       type: Boolean,
       default: false, // Default value for isAdmin
     },
+    starred: {
+      type: {},
+      
+    },
   },
   {
     timestamps: true, // Optional: adds createdAt and updatedAt

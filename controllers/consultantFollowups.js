@@ -4136,6 +4136,56 @@ export const addOrUpdateMedicineData = async (req, res) => {
   }
 };
 
+export const addStarredMedicine = async (req, res) => {
+  try {
+    const { medicineId, doses = [], isStarred } = req.body;
+
+    if (
+  
+      !medicineId ||
+      !Array.isArray(doses) ||
+      doses.length === 0
+    ) {
+      return res.status(400).json({ message: "Missing or invalid fields." });
+    }
+
+    // ✅ Prevent duplicate doseNumber in request
+    const seen = new Set();
+    for (const dose of doses) {
+      if (seen.has(dose.doseNumber)) {
+        return res.status(400).json({
+          message: `Duplicate doseNumber found in request: ${dose.doseNumber}`,
+        });
+      }
+      seen.add(dose.doseNumber);
+    }
+
+    // Find existing medicine
+    const existingItem = await Medicine.findOne({
+      _id:medicineId,
+      doctorId: req.user.id,
+    });
+
+    if (existingItem) {
+      existingItem.starred = isStarred ? {doses}:null ;
+
+    
+
+      await existingItem.save();
+      return res.status(200).json({
+        message: "Prescription updated",
+        data: existingItem,
+      });
+    }
+  } catch (error) {
+    console.error("Error in upsertPrescriptionItem:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
 export const getMedicineData = async (req, res) => {
   try {
     const { medicineId, appointmentId } = req.params;
@@ -4191,6 +4241,42 @@ export const removeMedicineData = async (req, res) => {
       },
       {
         $set: { isStarred: false }, // Mark as starred instead of deleting
+      }
+    );
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({
+        message: "Medicine data not found.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Medicine data removed successfully.",
+    });
+  } catch (error) {
+    console.log("Error removing medicine data:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+export const removeStarredMedicine = async (req, res) => {
+  try {
+    const { medicineId } = req.params;
+    if (!medicineId) {
+      return res.status(400).json({
+        message: "Medicine ID is required.",
+      });
+    }
+
+    const doctorId = req.user.id;
+
+    const result = await Medicine.updateOne(
+      {
+        _id: medicineId,
+        doctorId: req.user.id,
+      },
+      {
+        $set: { starred: null }, // Mark as starred instead of deleting
       }
     );
 

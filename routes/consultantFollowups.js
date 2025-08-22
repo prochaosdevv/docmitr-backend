@@ -6,6 +6,7 @@ import {
   addOrSaveConsultSymptomsData,
   addOrUpdateDosageCalculator,
   addOrUpdateMedicineData,
+  addStarredMedicine,
   allMedicineCategories,
   allMedicineCompositions,
   createDiagnosisByAdmin,
@@ -69,6 +70,7 @@ import {
   getSymptomProperties,
   removeMedicineData,
   removerescriptionItem,
+  removeStarredMedicine,
   saveDataToTemplate,
   searchDiagnosis,
   searchFindings,
@@ -210,8 +212,10 @@ router.post("/medicine/properties-save", upsertPrescriptionItem);
 router.post("/medicine/properties-remove", removerescriptionItem);
  
 router.post("/medicine/properties-save/data", addOrUpdateMedicineData);
+router.post("/medicine/properties-save/starred", addStarredMedicine);
 router.get("/medicine/properties-save/:medicineId/:appointmentId", getMedicineData);
 router.delete("/medicine/properties-save/:medicineId", removeMedicineData);
+router.delete("/medicine/properties-save/starred/:medicineId", removeStarredMedicine);
 
 router.post("/templates/appointments/save", saveDataToTemplate);
 router.get("/templates/saved", getAllSavedTemplates);
