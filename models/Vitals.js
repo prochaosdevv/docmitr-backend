@@ -30,7 +30,7 @@ const vitalsSchema = new mongoose.Schema(
         },
         vitalValue: {
           type: String,
-          required: true, // Vital value is required
+       
         },
       },
     ],
