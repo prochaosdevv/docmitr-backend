@@ -69,6 +69,10 @@ const doctorSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    experience: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,

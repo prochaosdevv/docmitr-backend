@@ -30,13 +30,12 @@ const vitalsSchema = new mongoose.Schema(
         },
         vitalValue: {
           type: String,
-       
         },
       },
     ],
   },
   {
-    timestamps: true, // Automatically manage createdAt and updatedAt fields
+    timestamps: true,
   }
 );
 
