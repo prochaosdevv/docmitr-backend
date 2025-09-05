@@ -228,3 +228,63 @@ export const getSlotsByDay = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
+export const getSlotsByDayForUsers = async (req, res) => {
+  try {
+    const { clinicId } = req.params;
+    const { date, timeEnv = "morning" } = req.query;
+
+    const pageLimit = 15;
+    const page = parseInt(req.query.page) || 1;
+    const skip = (page - 1) * pageLimit;
+
+    if (!date) {
+      return res.status(400).json({ message: "Date query parameter is required" });
+    }
+
+    const clinic = await Clinic.findById(clinicId);
+    if (!clinic) {
+      return res.status(404).json({ message: "Clinic not found" });
+    }
+
+    // ✅ Parse the date in local timezone using DD-MM-YYYY
+    const parsedDate = moment(date, "DD-MM-YYYY").startOf("day");
+    if (!parsedDate.isValid()) {
+      return res.status(400).json({ message: "Invalid date format. Use DD-MM-YYYY." });
+    }
+
+    // ✅ Keep local representation (avoid UTC shift)
+    const formattedDate = parsedDate.format("DD-MM-YYYY");
+    const dayOfWeek = parsedDate.format("dddd").toLowerCase(); // e.g. "thursday"
+
+    console.log("Input:", date, "| Parsed:", formattedDate, "| Day:", dayOfWeek);
+
+    const scheduleForDay = clinic.clinicTimings.weeklySchedule[dayOfWeek];
+    if (!scheduleForDay) {
+      return res.status(200).json({ clinicId, slots: [] });
+    }
+
+    const slotDuration = parseInt(clinic.clinicTimings.appointmentTimeSlot || "30");
+
+    const allSlots = generateSlotsForDay(scheduleForDay, timeEnv, slotDuration);
+    const totalSlots = allSlots.length;
+    const paginatedSlots = allSlots.slice(skip, skip + pageLimit);
+
+    return res.status(200).json({
+      clinicId,
+      date: formattedDate,
+      day: dayOfWeek,
+      slots: paginatedSlots,
+      totalSlots,
+      totalPages: Math.ceil(totalSlots / pageLimit),
+      currentPage: page,
+      pageLimit,
+    });
+  } catch (error) {
+    console.error("Error in getSlotsByDayForUsers:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+

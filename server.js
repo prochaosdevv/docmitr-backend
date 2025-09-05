@@ -33,6 +33,7 @@ import { subscriptionRoutes } from "./routes/subscription.js";
 import { invoiceRoutes } from "./routes/invoice.js";
 import { adminSettingsRoutes } from "./routes/adminSettings.js";
 import { paymentRoutes } from "./routes/payment.js";
+import { userRoutes } from "./routes/userRoute.js";
 
 // Load environment variables
 dotenv.config();
@@ -90,6 +91,7 @@ app.use("/docmitr/api/reference/other", otherReferenceRoutes);
 app.use("/docmitr/api/subscriptions", authenticateToken, subscriptionRoutes);
 app.use("/docmitr/api/settings", authenticateToken, adminSettingsRoutes);
 app.use("/docmitr/api/payments", paymentRoutes);
+app.use("/docmitr/api/users", userRoutes);
 
 // Root route
 app.get("/docmitr", (req, res) => {

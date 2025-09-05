@@ -146,6 +146,42 @@ export const getClinicsByDoctorOrStaffId = async (req, res) => {
     });
   }
 };
+export const getClinicsByDoctorIdForUsers = async (req, res) => {
+  const { userId } = req.params; // doctor or staff ID
+
+  try {
+    const clinics = await Clinic.find({ doctorId: userId })
+      .populate("doctorId", [
+        "firstName",
+        "lastName",
+        "specialization",
+        "email",
+        "phone",
+      ])
+      .lean();
+
+    if (!clinics || clinics.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No clinics found",
+        clinics: [],
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      clinics,
+    });
+  } catch (error) {
+    console.error("Error fetching clinics:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
 
 export const getClinic = async (req, res) => {
   try {

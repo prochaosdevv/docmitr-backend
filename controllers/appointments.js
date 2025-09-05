@@ -201,6 +201,121 @@ export const createAppointment = async (req, res) => {
   }
 };
 
+
+export const createUserAppointment = async (req, res) => {
+  try {
+    const { clinicId, date, ...appointmentData } = req.body;
+    const doctorId = req.body.doctorId;
+
+    if (!mongoose.Types.ObjectId.isValid(doctorId)) {
+      return res.status(400).json({ message: "Invalid doctor ID" });
+    }
+
+    const doctor = await Doctor.findById(doctorId);
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // ✅ Check if patient exists by email OR mobileNumber
+    const existingPatient = await Patient.findOne({
+      $or: [{ email: req.body.email }, { phone: req.body.mobileNumber }],
+    });
+
+    if (existingPatient) {
+      return res.status(400).json({
+        message: "Patient already exists with this email or mobile number",
+      });
+    }
+
+    // ✅ Generate new patientId
+    const latestPatient = await Patient.findOne()
+      .sort({ createdAt: -1 })
+      .select("patientId")
+      .lean();
+
+    let nextPatientId = "P-1001";
+    if (latestPatient && latestPatient.patientId) {
+      const lastNumber = parseInt(latestPatient.patientId.split("-")[1] || "1000", 10);
+      nextPatientId = `P-${lastNumber + 1}`;
+    }
+
+    // ✅ Create a new patient
+    const newPatient = new Patient({
+      patientId: nextPatientId,
+      email: req.body.email,
+      phone: req.body.mobileNumber,
+      name: req.body.patientName,
+      gender: req.body.gender,
+      dateOfBirth: req.body.dateOfBirth || "",
+      ageYears: req.body.ageYears || "0",
+      ageMonths: req.body.ageMonths || "0",
+      ...req.body.address || "",
+    });
+
+    await newPatient.save();
+
+
+
+    // ✅ Generate Appointment ID
+    const lastAppointment = await Appoinment.findOne({})
+      .sort({ createdAt: -1 })
+      .select("appointmentId");
+
+    let nextId = 1001;
+    if (lastAppointment && lastAppointment.appointmentId) {
+      const match = lastAppointment.appointmentId.match(/^DM(\d+)$/);
+      if (match) {
+        nextId = parseInt(match[1]) + 1;
+      }
+    }
+    const appointmentId = `DM${nextId}`;
+
+    // ✅ Create Appointment
+    const newAppointment = new Appoinment({
+      appointmentId,
+      doctorId,
+      clinicId,
+      patientId: newPatient._id,
+      ...appointmentData,
+    });
+
+    await newAppointment.save();
+
+    // ✅ Attach address to appointment if provided
+    if (isAddressComplete(req.body.address)) {
+      await Appoinment.findByIdAndUpdate(
+        newAppointment._id,
+        {
+          $set: {
+            address: {
+              addressLine1: req.body.address.addressLine1,
+              addressLine2: req.body.address.addressLine2,
+              city: req.body.address.city,
+              state: req.body.address.state,
+              district: req.body.address.district,
+              country: req.body.address.country,
+              pincode: req.body.address.pincode,
+              area: req.body.address.area,
+            },
+          },
+        },
+        { new: true, runValidators: true }
+      );
+    }
+
+    return res.status(201).json({
+      message: "Appointment created successfully",
+      appointment: newAppointment,
+      patient: newPatient,
+    });
+  } catch (error) {
+    console.error("Error creating appointment:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
 export const getAppointmentByIds = async (req, res) => {
   try {
     const { clinicId } = req.params;

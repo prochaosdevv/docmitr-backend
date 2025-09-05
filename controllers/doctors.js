@@ -79,6 +79,20 @@ export const getDoctorById = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+export const getDoctorByIdForUsers = async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.params.id).lean();
+
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    res.json(doctor);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 export const getLoggedInDoctor = async (req, res) => {
   try {
