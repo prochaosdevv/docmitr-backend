@@ -53,6 +53,10 @@ const slotAvailabilitySchema = new mongoose.Schema(
         required: true,
       },
     },
+     isBooked: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

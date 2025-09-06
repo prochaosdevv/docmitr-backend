@@ -5,6 +5,7 @@ import SlotsAvailability from "../models/SlotsAvailability.js";
 import mongoose from "mongoose";
 import Clinic from "../models/Clinic.js";
 import { generateSlotsForDay } from "../utils/helper-functions.js";
+import Appoinment from "../models/Appoinment.js";
 
 export const getSlotTimes = async (req, res) => {
   try {
@@ -248,18 +249,27 @@ export const getSlotsByDayForUsers = async (req, res) => {
       return res.status(404).json({ message: "Clinic not found" });
     }
 
-    // ✅ Parse the date in local timezone using DD-MM-YYYY
+    // ✅ Parse incoming date (DD-MM-YYYY from frontend)
     const parsedDate = moment(date, "DD-MM-YYYY").startOf("day");
     if (!parsedDate.isValid()) {
-      return res.status(400).json({ message: "Invalid date format. Use DD-MM-YYYY." });
+      return res
+        .status(400)
+        .json({ message: "Invalid date format. Use DD-MM-YYYY." });
     }
 
-    // ✅ Keep local representation (avoid UTC shift)
-    const formattedDate = parsedDate.format("DD-MM-YYYY");
-    const dayOfWeek = parsedDate.format("dddd").toLowerCase(); // e.g. "thursday"
+    // Formats
+    const formattedDate = parsedDate.format("DD-MM-YYYY"); // for response
+    const dbDate = parsedDate.format("YYYY-MM-DD"); // for appointment query
+    const dayOfWeek = parsedDate.format("dddd").toLowerCase();
 
-    console.log("Input:", date, "| Parsed:", formattedDate, "| Day:", dayOfWeek);
+ 
+    const bookedAppointments = await Appoinment.find({
+      clinicId,
+      appointmentDate: dbDate, // match DB format
+      appointmentSession: timeEnv,
+    }).select("timeSlot.timeRange -_id");
 
+    const bookedSet = new Set(bookedAppointments.map(a => a.timeSlot.timeRange));
     const scheduleForDay = clinic.clinicTimings.weeklySchedule[dayOfWeek];
     if (!scheduleForDay) {
       return res.status(200).json({ clinicId, slots: [] });
@@ -267,13 +277,18 @@ export const getSlotsByDayForUsers = async (req, res) => {
 
     const slotDuration = parseInt(clinic.clinicTimings.appointmentTimeSlot || "30");
 
+    // ✅ Generate slots
     const allSlots = generateSlotsForDay(scheduleForDay, timeEnv, slotDuration);
-    const totalSlots = allSlots.length;
-    const paginatedSlots = allSlots.slice(skip, skip + pageLimit);
+
+    // ✅ Remove booked ones
+    const availableSlots = allSlots.filter(slot => !bookedSet.has(slot));
+
+    const totalSlots = availableSlots.length;
+    const paginatedSlots = availableSlots.slice(skip, skip + pageLimit);
 
     return res.status(200).json({
       clinicId,
-      date: formattedDate,
+      date: formattedDate, // keep DD-MM-YYYY for frontend
       day: dayOfWeek,
       slots: paginatedSlots,
       totalSlots,
@@ -286,5 +301,6 @@ export const getSlotsByDayForUsers = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 

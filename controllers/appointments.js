@@ -205,6 +205,8 @@ export const createAppointment = async (req, res) => {
 export const createUserAppointment = async (req, res) => {
   try {
     const { clinicId, date, ...appointmentData } = req.body;
+    console.log(appointmentData);
+    
     const doctorId = req.body.doctorId;
 
     if (!mongoose.Types.ObjectId.isValid(doctorId)) {
@@ -216,16 +218,17 @@ export const createUserAppointment = async (req, res) => {
       return res.status(404).json({ message: "Doctor not found" });
     }
 
-    // ✅ Check if patient exists by email OR mobileNumber
-    const existingPatient = await Patient.findOne({
-      $or: [{ email: req.body.email }, { phone: req.body.mobileNumber }],
-    });
+ // ✅ Check if patient exists by phone only
+const existingPatient = await Patient.findOne({
+  phone: req.body.mobileNumber,
+});
 
-    if (existingPatient) {
-      return res.status(400).json({
-        message: "Patient already exists with this email or mobile number",
-      });
-    }
+if (existingPatient) {
+  return res.status(400).json({
+    message: "Patient already exists with this mobile number",
+  });
+}
+
 
     // ✅ Generate new patientId
     const latestPatient = await Patient.findOne()
