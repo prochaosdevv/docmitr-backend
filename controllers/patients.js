@@ -402,6 +402,27 @@ export const getPatients = async (req, res) => {
   }
 };
 
+export const getPatientByPhone = async (req, res) => {
+  try {
+    const { phone } = req.params;
+
+    if (!phone || phone.length !== 10) {
+      return res.status(400).json({ message: "Invalid phone number" });
+    }
+
+    const patient = await Patient.findOne({ phone });
+
+    if (!patient) {
+      return res.status(404).json({ message: "Patient not found" });
+    }
+
+    return res.status(200).json(patient);
+  } catch (err) {
+    console.error("Error fetching patient by phone:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
 export const updatePatientAddressAndCreateHistory = async (req, res) => {
   try {
     const { id } = req.params;

@@ -205,8 +205,6 @@ export const createAppointment = async (req, res) => {
 export const createUserAppointment = async (req, res) => {
   try {
     const { clinicId, date, ...appointmentData } = req.body;
-    console.log(appointmentData);
-    
     const doctorId = req.body.doctorId;
 
     if (!mongoose.Types.ObjectId.isValid(doctorId)) {
@@ -218,46 +216,40 @@ export const createUserAppointment = async (req, res) => {
       return res.status(404).json({ message: "Doctor not found" });
     }
 
- // ✅ Check if patient exists by phone only
-const existingPatient = await Patient.findOne({
-  phone: req.body.mobileNumber,
-});
+    // ✅ Check if patient exists by phone
+    let patient = await Patient.findOne({ phone: req.body.mobileNumber });
 
-if (existingPatient) {
-  return res.status(400).json({
-    message: "Patient already exists with this mobile number",
-  });
-}
+    if (!patient) {
+      // Generate new patientId
+      const latestPatient = await Patient.findOne()
+        .sort({ createdAt: -1 })
+        .select("patientId")
+        .lean();
 
+      let nextPatientId = "P-1001";
+      if (latestPatient && latestPatient.patientId) {
+        const lastNumber = parseInt(
+          latestPatient.patientId.split("-")[1] || "1000",
+          10
+        );
+        nextPatientId = `P-${lastNumber + 1}`;
+      }
 
-    // ✅ Generate new patientId
-    const latestPatient = await Patient.findOne()
-      .sort({ createdAt: -1 })
-      .select("patientId")
-      .lean();
+      // ✅ Create a new patient
+      patient = new Patient({
+        patientId: nextPatientId,
+        email: req.body.email,
+        phone: req.body.mobileNumber,
+        name: req.body.patientName,
+        gender: req.body.gender,
+        dateOfBirth: req.body.dateOfBirth || "",
+        ageYears: req.body.ageYears || "0",
+        ageMonths: req.body.ageMonths || "0",
+        ...(req.body.address || {}),
+      });
 
-    let nextPatientId = "P-1001";
-    if (latestPatient && latestPatient.patientId) {
-      const lastNumber = parseInt(latestPatient.patientId.split("-")[1] || "1000", 10);
-      nextPatientId = `P-${lastNumber + 1}`;
+      await patient.save();
     }
-
-    // ✅ Create a new patient
-    const newPatient = new Patient({
-      patientId: nextPatientId,
-      email: req.body.email,
-      phone: req.body.mobileNumber,
-      name: req.body.patientName,
-      gender: req.body.gender,
-      dateOfBirth: req.body.dateOfBirth || "",
-      ageYears: req.body.ageYears || "0",
-      ageMonths: req.body.ageMonths || "0",
-      ...req.body.address || "",
-    });
-
-    await newPatient.save();
-
-
 
     // ✅ Generate Appointment ID
     const lastAppointment = await Appoinment.findOne({})
@@ -273,12 +265,12 @@ if (existingPatient) {
     }
     const appointmentId = `DM${nextId}`;
 
-    // ✅ Create Appointment
+    // ✅ Create Appointment (reuse or newly created patient._id)
     const newAppointment = new Appoinment({
       appointmentId,
       doctorId,
       clinicId,
-      patientId: newPatient._id,
+      patientId: patient._id,
       ...appointmentData,
     });
 
@@ -309,13 +301,14 @@ if (existingPatient) {
     return res.status(201).json({
       message: "Appointment created successfully",
       appointment: newAppointment,
-      patient: newPatient,
+      patient,
     });
   } catch (error) {
     console.error("Error creating appointment:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 

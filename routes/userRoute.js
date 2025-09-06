@@ -7,6 +7,7 @@ import { getClinicsByDoctorIdForUsers, getClinicsByDoctorOrStaffId } from "../co
 import { getSlotsByDayForUsers } from "../controllers/slots.js";
 import { createPayment, getPaymentByAppointmentId, getPaymentsByAppointmentId } from "../controllers/bookingPaymentController.js";
 import { createUserAppointment } from "../controllers/appointments.js";
+import { getPatientByPhone } from "../controllers/patients.js";
 
 
 const router = express.Router();
@@ -18,6 +19,7 @@ router.post("/create/appointment", createUserAppointment);
 router.post("/create/payment", createPayment);
 router.get("/get/all/payment/:appointmentId", getPaymentsByAppointmentId);
 router.get("/get/appointment/:appointmentId", getPaymentByAppointmentId);
+router.get("/get/patient/by/:phone", getPatientByPhone);
 
 
 export const userRoutes = router;

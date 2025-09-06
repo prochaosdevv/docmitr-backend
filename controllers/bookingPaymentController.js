@@ -43,7 +43,14 @@ export const getPaymentByAppointmentId = async (req, res) => {
     const { appointmentId } = req.params;
 
     // Find a single payment for the appointment
-    const payment = await BookingPayment.findOne({ appointmentId }).populate("appointmentId");
+   const payment = await BookingPayment.findOne({ appointmentId })
+      .populate({
+        path: "appointmentId",
+        populate: [
+            { path: "doctorId", model: "Doctor", select: "_id firstName lastName" },
+          { path: "clinicId", model: "Clinic", select: "_id name contact" },
+        ],
+      });
 
     if (!payment) {
       return res.status(404).json({ message: "No payment found for this appointment" });
